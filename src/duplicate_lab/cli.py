@@ -10,6 +10,7 @@ from pathlib import Path
 from duplicate_lab.inventory import build_inventory
 from duplicate_lab.quality import build_quality_report
 from duplicate_lab.reporting import validate_output_directory, write_reports
+from duplicate_lab.retention import build_retention_report, load_retention_policy
 from duplicate_lab.scanner import scan
 
 
@@ -70,6 +71,11 @@ def parser() -> argparse.ArgumentParser:
         type=Path,
         help="Manifesto JSON externo que confirma grupos da mesma captura; implica --quality",
     )
+    report.add_argument(
+        "--retention-policy",
+        type=Path,
+        help="Política JSON externa para recomendações de retenção de cópias exatas",
+    )
     return root
 
 
@@ -113,12 +119,20 @@ def main(argv: list[str] | None = None) -> int:
                 if quality_requested
                 else None
             )
+            retention_report = (
+                build_retention_report(
+                    result, args.directory, load_retention_policy(args.retention_policy)
+                )
+                if args.retention_policy
+                else None
+            )
             for path in write_reports(
                 result,
                 destination,
                 formats,
                 overwrite=args.overwrite,
                 quality_report=quality_report,
+                retention_report=retention_report,
             ):
                 print(f"written: {path}")
         return 0

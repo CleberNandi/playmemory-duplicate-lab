@@ -14,6 +14,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from duplicate_lab.models import PairResult, PhotoRecord, ScanResult
 from duplicate_lab.quality import QualityGroup, QualityIndicators, QualityReport
+from duplicate_lab.retention import RetentionReport
 
 THUMBNAIL_SIZE = (360, 240)
 THUMBNAIL_MAX_BYTES = 96 * 1024
@@ -181,7 +182,28 @@ def _quality_groups(
     return "".join(sections)
 
 
-def render_html(result: ScanResult, quality_report: QualityReport | None = None) -> str:
+def _retention_groups(report: RetentionReport) -> str:
+    sections = []
+    for item in report.recommendations:
+        selected = str(item.selected) if item.selected else "nenhum arquivo"
+        criteria = "".join(f"<li>{_escape(value)}</li>" for value in item.criteria)
+        warnings = "".join(f"<li>{_escape(value)}</li>" for value in item.warnings)
+        sections.append(
+            f"""<details class="result retention" data-kind="retention" data-name="{_escape(item.group_id.casefold())}" open>
+            <summary>{_escape(item.group_id)} — retenção: {_escape(item.conclusion)}</summary>
+            <p><strong>Exemplar recomendado:</strong> {_escape(selected)}</p>
+            <p>{_escape(item.justification)}</p><h4>Critérios externos</h4>
+            <ul>{criteria or "<li>Nenhum critério distinguiu os caminhos.</li>"}</ul>
+            <h4>Avisos</h4><ul>{warnings}</ul></details>"""
+        )
+    return "".join(sections)
+
+
+def render_html(
+    result: ScanResult,
+    quality_report: QualityReport | None = None,
+    retention_report: RetentionReport | None = None,
+) -> str:
     """Prepare presentation data and render one offline, self-contained document."""
     records = {record.path: record for record in result.inventory}
     used_paths = {path for group in result.exact_groups for path in group.paths} | {
@@ -218,6 +240,7 @@ def render_html(result: ScanResult, quality_report: QualityReport | None = None)
         if quality_report
         else ""
     )
+    retention_sections = _retention_groups(retention_report) if retention_report else ""
     return f"""<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -246,13 +269,14 @@ figure{{margin:0;min-width:0}}img,.thumb-missing{{display:block;width:100%;heigh
 <div class="stat"><strong>{len(visual_pairs)}</strong>candidatos visuais</div>
 <div class="stat"><strong>{len(invalid)}</strong>arquivos não classificados</div>
 <div class="stat"><strong>{len(quality_report.groups) if quality_report else 0}</strong>grupos com avaliação técnica</div>
+<div class="stat"><strong>{len(retention_report.recommendations) if retention_report else 0}</strong>recomendações de retenção</div>
 </section>
 <p>Métricas disponíveis: SHA-256 para grupos exatos; distância pHash, rotação, SSIM e MAE para candidatos visuais. Classificações são heurísticas.</p>
 <section class="issues"><h2>Erros e análises incompletas</h2><ul>{issues}</ul></section>
 <section class="controls" aria-label="Controles"><input id="search" type="search" placeholder="Buscar nome de arquivo">
-<select id="filter"><option value="all">Todos os resultados</option><option value="quality">Avaliação técnica</option><option value="exact">Grupos exatos</option><option value="visual">Candidatos visuais</option><option value="issue">Análises incompletas</option></select>
+<select id="filter"><option value="all">Todos os resultados</option><option value="retention">Retenção</option><option value="quality">Avaliação técnica</option><option value="exact">Grupos exatos</option><option value="visual">Candidatos visuais</option><option value="issue">Análises incompletas</option></select>
 <select id="sort"><option value="name">Ordenar por nome</option><option value="phash">Distância pHash</option><option value="ssim-desc">SSIM (maior primeiro)</option><option value="mae">MAE</option></select></section>
-<section id="results"><h2>Resultados: qualidade, grupos exatos e candidatos visuais</h2>{quality_sections}{exact}{pairs}</section>
+<section id="results"><h2>Resultados: retenção, qualidade, grupos exatos e candidatos visuais</h2>{retention_sections}{quality_sections}{exact}{pairs}</section>
 </main><script>
 (() => {{'use strict';const search=document.querySelector('#search'),filter=document.querySelector('#filter'),sort=document.querySelector('#sort'),root=document.querySelector('#results');
 const cards=[...root.querySelectorAll('.result')];function number(card,key,fallback){{const value=Number(card.dataset[key]);return card.dataset[key]===''?fallback:value}}

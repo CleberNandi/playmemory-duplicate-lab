@@ -9,6 +9,7 @@ from typing import TextIO
 
 from duplicate_lab.models import ScanResult
 from duplicate_lab.quality import QualityReport
+from duplicate_lab.retention import RetentionReport
 
 REPORT_FILENAMES = {
     "json": "duplicate-lab-report.json",
@@ -36,6 +37,7 @@ def write_reports(
     *,
     overwrite: bool = False,
     quality_report: QualityReport | None = None,
+    retention_report: RetentionReport | None = None,
 ) -> list[Path]:
     unknown = formats - REPORT_FILENAMES.keys()
     if unknown:
@@ -79,6 +81,6 @@ def write_reports(
 
         target = targets["html"]
         with _open_text(target, overwrite) as stream:
-            stream.write(render_html(result, quality_report))
+            stream.write(render_html(result, quality_report, retention_report))
         written.append(target)
     return written

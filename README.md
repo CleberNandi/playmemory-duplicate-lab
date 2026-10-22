@@ -17,6 +17,8 @@ uv run duplicate-lab report /caminho/das/fotos --output-dir /caminho/separado/re
 uv run duplicate-lab report /caminho/das/fotos --output-dir /caminho/separado/galeria --format html
 uv run duplicate-lab report /caminho/das/fotos --output-dir /caminho/separado/galeria \
   --format html --quality --quality-manifest /caminho/ground-truth.json
+uv run duplicate-lab report /caminho/das/fotos --output-dir /caminho/separado/galeria \
+  --format html --retention-policy /caminho/retention-policy.json
 ```
 
 Extensões podem ser configuradas com `--extensions jpg,jpeg`. A normalização estrutural usa uma
@@ -37,6 +39,28 @@ potencialmente privadas. Mantenha os relatórios apenas localmente e não os pub
 está ignorado pelo Git. Cada miniatura preserva a orientação EXIF, fica limitada a 360 × 240 e a
 96 KiB, e jamais incorpora o original em resolução completa. Se uma miniatura não couber nesse
 limite ou não puder ser lida, a galeria sinaliza que ela está indisponível.
+
+## Política de retenção de cópias exatas
+
+`--retention-policy` aceita um JSON local com `version: 1` e listas opcionais
+`preferred_directories`, `preferred_name_patterns` (expressões regulares), `location_priority` e
+`protected_directories`. Todos os diretórios são relativos ao acervo. A política só examina grupos
+SHA-256 idênticos e produz `preferred`, `tie` ou `inconclusive`; critérios conflitantes não são
+convertidos em pontuação. Diretórios protegidos são destacados e nunca tratados como descartáveis.
+Nenhuma recomendação executa operações sobre arquivos, e datas, tamanho, resolução e qualidade
+JPEG não participam desta escolha operacional.
+
+Exemplo mínimo:
+
+```json
+{
+  "version": 1,
+  "preferred_directories": ["originais"],
+  "preferred_name_patterns": ["^IMG_"],
+  "location_priority": ["biblioteca", "importados"],
+  "protected_directories": ["backup"]
+}
+```
 
 ## Avaliação técnica experimental
 
