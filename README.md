@@ -191,3 +191,24 @@ dataset em <https://thoth.inrialpes.fr/~jegou/data.php.html#copydays>; a relaç�
 segue as implementações públicas de avaliação DINO/SSCD: correspondência 1:1 nos blocos JPEG e
 prefixo de quatro caracteres no conjunto Strong. Não há calibração nem ajuste automático de
 limiares.
+
+### Benchmark 02: Strong e distractores controlados
+
+`benchmark-copydays-strong` executa três cenários isolados: Strong contra os 157 originais,
+Strong contra originais mais 256 distractores e 64 consultas negativas contra os originais. Os
+distractores são imagens geométricas não fotográficas, geradas local e deterministicamente em um
+diretório externo ao repositório; portanto são negativos verificados por construção, mas não
+substituem uma futura avaliação com fotografias naturais curadas.
+
+```bash
+uv run duplicate-lab benchmark-copydays-strong /caminho/copydays \
+  --distractor-root /caminho/copydays-distractors-v1 \
+  --baseline reports/copydays-full/copydays-benchmark.json \
+  --output-dir reports/copydays-strong
+```
+
+O comando exige exatamente 157 originais e 229 consultas Strong, rejeita associações de prefixo
+ausentes ou ambíguas, mantém os limiares de produção e registra Recall@K/MRR separadamente das
+métricas de confirmação. A tabela de sensibilidade pHash (0, 4, 8, 12 e 16) é apenas análise
+offline; ela não calibra nem altera defaults. Os relatórios incluem tempo de hashing, comparação
+pHash, verificações estruturais, RSS do processo e alocações rastreadas pelo Python.

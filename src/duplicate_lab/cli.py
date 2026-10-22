@@ -8,6 +8,11 @@ import logging
 from pathlib import Path
 
 from duplicate_lab.benchmark_copydays import run_benchmark, write_benchmark_reports
+from duplicate_lab.benchmark_strong import (
+    generate_controlled_negatives,
+    run_strong_benchmark,
+    write_strong_reports,
+)
 from duplicate_lab.inventory import build_inventory
 from duplicate_lab.quality import build_quality_report
 from duplicate_lab.reporting import validate_output_directory, write_reports
@@ -87,6 +92,16 @@ def parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--include-strong", action="store_true")
     benchmark.add_argument("--max-queries", type=int, help="Limite determinístico para smoke test")
     benchmark.add_argument("--overwrite", action="store_true")
+    strong = commands.add_parser(
+        "benchmark-copydays-strong", help="Executar Benchmark 02 com Strong e negativos"
+    )
+    strong.add_argument("dataset_root", type=Path)
+    strong.add_argument("--distractor-root", type=Path, required=True)
+    strong.add_argument("--output-dir", type=Path, required=True)
+    strong.add_argument("--baseline", type=Path)
+    strong.add_argument("--max-queries", type=int, help="Limite determinístico para smoke test")
+    strong.add_argument("--comparison-side", type=int, default=512)
+    strong.add_argument("--overwrite", action="store_true")
     return root
 
 
@@ -110,6 +125,32 @@ def main(argv: list[str] | None = None) -> int:
         format="%(levelname)s %(name)s %(message)s",
     )
     try:
+        if args.command == "benchmark-copydays-strong":
+            if args.max_queries is not None and args.max_queries < 1:
+                raise ValueError("--max-queries deve ser positivo")
+            generate_controlled_negatives(
+                args.distractor_root / "database", count=256, namespace="db"
+            )
+            generate_controlled_negatives(
+                args.distractor_root / "queries", count=64, namespace="query"
+            )
+            result = run_strong_benchmark(
+                args.dataset_root,
+                args.distractor_root,
+                baseline_path=args.baseline,
+                comparison_side=args.comparison_side,
+                max_queries=args.max_queries,
+            )
+            for path in write_strong_reports(result, args.output_dir, overwrite=args.overwrite):
+                print(f"written: {path}")
+            print(
+                json.dumps(
+                    {key: value["metrics"] for key, value in result["scenarios"].items()},
+                    indent=2,
+                    ensure_ascii=False,
+                )
+            )
+            return 0
         if args.command == "benchmark-copydays":
             if args.max_queries is not None and args.max_queries < 1:
                 raise ValueError("--max-queries deve ser positivo")
