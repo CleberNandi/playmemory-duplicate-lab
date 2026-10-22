@@ -12,8 +12,9 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from duplicate_lab.models import ScanResult
 
-Recommendation = Literal["preferred", "alternative", "tie", "inconclusive"]
+Recommendation = Literal["preferred", "alternative", "tie", "incomparable", "inconclusive"]
 Eligibility = Literal["binary_identity", "ground_truth_capture"]
+ComparisonRelation = Literal["dominates", "tie", "incomparable", "inconclusive"]
 ANALYSIS_SIDE = 512
 
 
@@ -44,12 +45,32 @@ class QualityMember:
     path: Path
     recommendation: Recommendation
     reasons: tuple[str, ...]
+    rank: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "path": str(self.path),
             "recommendation": self.recommendation,
             "reasons": list(self.reasons),
+            "rank": self.rank,
+        }
+
+
+@dataclass(frozen=True)
+class QualityComparison:
+    left: Path
+    right: Path
+    relation: ComparisonRelation
+    preferred: Path | None
+    evidence: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "left": str(self.left),
+            "right": str(self.right),
+            "relation": self.relation,
+            "preferred": str(self.preferred) if self.preferred else None,
+            "evidence": list(self.evidence),
         }
 
 
@@ -60,6 +81,7 @@ class QualityGroup:
     members: tuple[QualityMember, ...]
     conclusion: Recommendation
     limitations: tuple[str, ...]
+    comparisons: tuple[QualityComparison, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -68,6 +90,7 @@ class QualityGroup:
             "members": [member.to_dict() for member in self.members],
             "conclusion": self.conclusion,
             "limitations": list(self.limitations),
+            "comparisons": [comparison.to_dict() for comparison in self.comparisons],
         }
 
 
@@ -228,8 +251,9 @@ def _rank_capture_group(
     paths: tuple[Path, ...],
     indicators: dict[Path, QualityIndicators],
 ) -> QualityGroup:
-    if any(indicators[path].error for path in paths):
-        members = tuple(QualityMember(path, "inconclusive", ()) for path in paths)
+    ordered_paths = tuple(sorted(paths, key=lambda item: item.as_posix().casefold()))
+    if any(indicators[path].error for path in ordered_paths):
+        members = tuple(QualityMember(path, "inconclusive", ()) for path in ordered_paths)
         return QualityGroup(
             group_id,
             "ground_truth_capture",
@@ -238,33 +262,64 @@ def _rank_capture_group(
             ("Há indicadores ausentes por erro de decodificação.",),
         )
 
-    candidates: list[tuple[Path, tuple[str, ...]]] = []
-    for path in paths:
-        advantages: set[str] = set()
-        has_disadvantage = False
-        for other in paths:
-            if other == path:
-                continue
-            advantages.update(_advantages(indicators[path], indicators[other]))
-            has_disadvantage |= bool(_disadvantages(indicators[path], indicators[other]))
-        if len(advantages) >= 2 and not has_disadvantage:
-            candidates.append((path, tuple(sorted(advantages))))
+    comparisons: list[QualityComparison] = []
+    outgoing = {path: set() for path in ordered_paths}
+    incoming = {path: set() for path in ordered_paths}
+    reasons_by_path: dict[Path, set[str]] = {path: set() for path in ordered_paths}
+    for index, left in enumerate(ordered_paths):
+        for right in ordered_paths[index + 1 :]:
+            comparison = compare_quality_indicators(indicators[left], indicators[right])
+            comparisons.append(comparison)
+            if comparison.relation == "dominates" and comparison.preferred:
+                other = right if comparison.preferred == left else left
+                outgoing[comparison.preferred].add(other)
+                incoming[other].add(comparison.preferred)
+                reasons_by_path[comparison.preferred].update(comparison.evidence)
 
-    if len(candidates) == 1:
-        preferred, reasons = candidates[0]
-        ordered = [preferred, *(path for path in paths if path != preferred)]
-        members = tuple(
-            QualityMember(
-                path,
-                "preferred" if path == preferred else "alternative",
-                reasons if path == preferred else ("alternativa da mesma captura confirmada",),
-            )
-            for path in ordered
+    ranks: dict[Path, int] = {}
+    remaining = set(ordered_paths)
+    rank = 1
+    while remaining:
+        tier = sorted(
+            (path for path in remaining if not (incoming[path] & remaining)),
+            key=lambda item: item.as_posix().casefold(),
         )
-        conclusion: Recommendation = "preferred"
-    else:
-        members = tuple(QualityMember(path, "inconclusive", ()) for path in paths)
+        if not tier:  # Defensive fallback; strict dominance should be acyclic.
+            tier = sorted(remaining, key=lambda item: item.as_posix().casefold())
+        for path in tier:
+            ranks[path] = rank
+            remaining.remove(path)
+        rank += 1
+
+    top = [path for path in ordered_paths if ranks[path] == 1]
+    all_ties = bool(comparisons) and all(item.relation == "tie" for item in comparisons)
+    has_inconclusive = any(item.relation == "inconclusive" for item in comparisons)
+    if all_ties:
+        conclusion: Recommendation = "tie"
+    elif len(top) == 1 and _reachable(top[0], outgoing) == set(ordered_paths) - {top[0]}:
+        conclusion = "preferred"
+    elif has_inconclusive and not any(outgoing.values()):
         conclusion = "inconclusive"
+    else:
+        conclusion = "incomparable"
+
+    members_list = []
+    for path in sorted(ordered_paths, key=lambda item: (ranks[item], item.as_posix().casefold())):
+        if conclusion == "tie":
+            recommendation: Recommendation = "tie"
+        elif conclusion == "preferred" and path == top[0]:
+            recommendation = "preferred"
+        elif incoming[path]:
+            recommendation = "alternative"
+        elif has_inconclusive:
+            recommendation = "inconclusive"
+        else:
+            recommendation = "incomparable"
+        reasons = tuple(sorted(reasons_by_path[path]))
+        if not reasons:
+            reasons = ("sem superioridade técnica demonstrada sobre as alternativas",)
+        members_list.append(QualityMember(path, recommendation, reasons, ranks[path]))
+    members = tuple(members_list)
     return QualityGroup(
         group_id,
         "ground_truth_capture",
@@ -276,7 +331,79 @@ def _rank_capture_group(
             "Exposição é descritiva e não participa da preferência.",
             "Quantização e blocos JPEG são indicadores experimentais, não a qualidade original.",
         ),
+        tuple(comparisons),
     )
+
+
+def _reachable(start: Path, outgoing: dict[Path, set[Path]]) -> set[Path]:
+    reached: set[Path] = set()
+    pending = list(outgoing[start])
+    while pending:
+        path = pending.pop()
+        if path not in reached:
+            reached.add(path)
+            pending.extend(outgoing[path] - reached)
+    return reached
+
+
+def compare_quality_indicators(
+    left: QualityIndicators, right: QualityIndicators
+) -> QualityComparison:
+    if left.error or right.error:
+        return QualityComparison(
+            left.path,
+            right.path,
+            "inconclusive",
+            None,
+            ("indicadores ausentes por erro de decodificação",),
+        )
+    if left.aspect_ratio and right.aspect_ratio:
+        ratio_delta = abs(left.aspect_ratio - right.aspect_ratio) / max(
+            left.aspect_ratio, right.aspect_ratio
+        )
+        if ratio_delta > 0.02:
+            return QualityComparison(
+                left.path,
+                right.path,
+                "incomparable",
+                None,
+                ("proporções diferem de forma relevante",),
+            )
+    left_advantages = _advantages(left, right)
+    right_advantages = _advantages(right, left)
+    left_disadvantages = _disadvantages(left, right)
+    right_disadvantages = _disadvantages(right, left)
+    if len(left_advantages) >= 2 and not left_disadvantages:
+        return QualityComparison(left.path, right.path, "dominates", left.path, left_advantages)
+    if len(right_advantages) >= 2 and not right_disadvantages:
+        return QualityComparison(left.path, right.path, "dominates", right.path, right_advantages)
+    available = (
+        left.total_pixels,
+        right.total_pixels,
+        left.sharpness,
+        right.sharpness,
+        left.jpeg_quantization_mean,
+        right.jpeg_quantization_mean,
+    )
+    if all(value is None for value in available):
+        return QualityComparison(
+            left.path, right.path, "inconclusive", None, ("indicadores técnicos ausentes",)
+        )
+    if not left_advantages and not right_advantages:
+        return QualityComparison(
+            left.path,
+            right.path,
+            "tie",
+            None,
+            ("nenhuma diferença técnica confiável ultrapassou os limiares",),
+        )
+    evidence = tuple(
+        [
+            *(f"{left.path.name}: {item}" for item in left_advantages),
+            *(f"{right.path.name}: {item}" for item in right_advantages),
+        ]
+    )
+    return QualityComparison(left.path, right.path, "incomparable", None, evidence)
 
 
 def build_quality_report(

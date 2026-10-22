@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from conftest import save_jpeg
 
+from duplicate_lab.cli import main
 from duplicate_lab.html_report import render_html
 from duplicate_lab.retention import (
     RetentionPolicy,
@@ -107,3 +108,26 @@ def test_policy_loader_and_source_files_remain_unchanged(tmp_path: Path, pattern
     build_retention_report(result, source, load_retention_policy(policy_path))
 
     assert {path: path.read_bytes() for path in source.rglob("*.jpg")} == before
+
+
+def test_cli_rejects_retention_policy_for_non_html_report(tmp_path: Path, patterned_image):
+    source = tmp_path / "photos"
+    source.mkdir()
+    save_jpeg(patterned_image, source / "photo.jpg")
+    policy = tmp_path / "policy.json"
+    policy.write_text('{"version": 1}', encoding="utf-8")
+
+    exit_code = main(
+        [
+            "report",
+            str(source),
+            "--output-dir",
+            str(tmp_path / "output"),
+            "--format",
+            "json",
+            "--retention-policy",
+            str(policy),
+        ]
+    )
+
+    assert exit_code == 2

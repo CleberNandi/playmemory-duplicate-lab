@@ -87,10 +87,12 @@ escala normalizada, luminância média, frações muito claras/escuras, média d
 quantização JPEG, descontinuidades de blocos experimentais e presença de EXIF. GPS não é lido nem
 exibido. Exposição é apenas descritiva; tamanho em bytes não equivale a qualidade.
 
-A política não usa nota de 0 a 100. Uma preferência exige uma única versão com pelo menos duas
-vantagens relativas e nenhuma desvantagem confiável. Mais pixels, isoladamente, não escolhem um
-vencedor. Nitidez elevada causada por compressão agressiva não prevalece sobre evidências
-conjuntas de quantização e blocos. Sem evidência suficiente, o resultado é `inconclusive`.
+A política não usa nota de 0 a 100. Comparações par a par formam uma ordem parcial: uma versão só
+domina outra com pelo menos duas vantagens relativas e nenhuma desvantagem confiável. Os níveis
+de apresentação vêm dessa dominância; dentro do mesmo nível, a ordenação por caminho é apenas
+determinística. Mais pixels, isoladamente, não escolhem um vencedor. Nitidez elevada causada por
+compressão agressiva não prevalece sobre evidências conjuntas de quantização e blocos. Vantagens
+conflitantes produzem `incomparable`; indicadores ausentes podem produzir `inconclusive`.
 
 ## Pipeline e interpretação
 

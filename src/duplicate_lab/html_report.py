@@ -162,11 +162,16 @@ def _quality_groups(
             reasons = "".join(f"<li>{_escape(reason)}</li>" for reason in member.reasons)
             members.append(
                 f"""<div class="quality-member {member.recommendation}">
-                <h4>{_escape(member.recommendation)}</h4>
+                <h4>{_escape(member.recommendation)} · nível {_escape(member.rank or "—")}</h4>
                 {_image(records.get(member.path), member.path, thumbnails, quality)}
                 <ul>{reasons or "<li>Sem vantagem técnica conclusiva.</li>"}</ul></div>"""
             )
         limitations = "".join(f"<li>{_escape(item)}</li>" for item in group.limitations)
+        comparisons = "".join(
+            f"<li>{_escape(item.left.name)} ↔ {_escape(item.right.name)}: "
+            f"{_escape(item.relation)} — {_escape('; '.join(item.evidence))}</li>"
+            for item in group.comparisons
+        )
         evidence = (
             "identidade binária confirmada"
             if group.eligibility == "binary_identity"
@@ -177,6 +182,7 @@ def _quality_groups(
             <summary>{_escape(group.group_id)} — {group.conclusion}</summary>
             <p class="notice">Elegibilidade: {evidence}. Recomendação apenas informativa.</p>
             <div class="quality-members">{"".join(members)}</div>
+            <h4>Comparações par a par</h4><ul>{comparisons or "<li>Não aplicável.</li>"}</ul>
             <h4>Limitações</h4><ul>{limitations}</ul></details>"""
         )
     return "".join(sections)

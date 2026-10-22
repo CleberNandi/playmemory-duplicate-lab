@@ -5,7 +5,12 @@ import pytest
 from conftest import save_jpeg
 from PIL import Image, ImageEnhance, ImageFilter
 
-from duplicate_lab.quality import analyze_quality, build_quality_report
+from duplicate_lab.quality import (
+    QualityIndicators,
+    analyze_quality,
+    build_quality_report,
+    compare_quality_indicators,
+)
 from duplicate_lab.scanner import scan
 
 
@@ -116,8 +121,8 @@ def test_artificial_upscale_does_not_win_on_pixels_alone(tmp_path: Path, pattern
 
     group = build_quality_report(scan(source), source, manifest).groups[0]
 
-    assert group.conclusion == "inconclusive"
-    assert all(member.recommendation == "inconclusive" for member in group.members)
+    assert group.conclusion == "incomparable"
+    assert all(member.recommendation == "incomparable" for member in group.members)
 
 
 def test_visual_similarity_never_creates_substitution_group(tmp_path: Path, noisy_images):
@@ -178,3 +183,81 @@ def test_decode_error_and_memory_limit_are_inconclusive(tmp_path: Path, monkeypa
     image.save(path, "JPEG")
     monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 100)
     assert analyze_quality(path).error
+
+
+def _indicators(
+    name: str,
+    *,
+    pixels: int | None = 100,
+    ratio: float | None = 1.5,
+    sharpness: float | None = 1.0,
+    quantization: float | None = 10.0,
+    blockiness: float | None = 0.01,
+) -> QualityIndicators:
+    return QualityIndicators(
+        Path(name),
+        15 if pixels else None,
+        10 if pixels else None,
+        pixels,
+        ratio,
+        sharpness,
+        0.5,
+        0.0,
+        0.0,
+        quantization,
+        blockiness,
+        False,
+    )
+
+
+def test_pairwise_dominance_tie_conflict_and_missing_indicators():
+    superior = _indicators("superior.jpg", pixels=200, sharpness=1.2, quantization=8)
+    inferior = _indicators("inferior.jpg", pixels=100, sharpness=1.0, quantization=12)
+    equal = _indicators("equal.jpg", pixels=200, sharpness=1.2, quantization=8)
+    cleaner = _indicators(
+        "cleaner.jpg", pixels=100, sharpness=1.0, quantization=5, blockiness=0.001
+    )
+    missing = _indicators(
+        "missing.jpg", pixels=None, ratio=None, sharpness=None, quantization=None, blockiness=None
+    )
+
+    dominance = compare_quality_indicators(superior, inferior)
+    conflict = compare_quality_indicators(superior, cleaner)
+
+    assert dominance.relation == "dominates" and dominance.preferred == superior.path
+    assert compare_quality_indicators(superior, equal).relation == "tie"
+    assert conflict.relation == "incomparable"
+    assert compare_quality_indicators(missing, missing).relation == "inconclusive"
+
+
+def test_aspect_ratio_difference_is_incomparable():
+    wide = _indicators("wide.jpg", pixels=200, sharpness=1.2, ratio=16 / 9)
+    square = _indicators("square.jpg", pixels=100, sharpness=1.0, ratio=1.0)
+
+    comparison = compare_quality_indicators(wide, square)
+
+    assert comparison.relation == "incomparable"
+    assert "proporções" in comparison.evidence[0]
+
+
+def test_ranking_is_deterministic_and_exposes_pairwise_evidence(tmp_path: Path, patterned_image):
+    source = tmp_path / "photos"
+    source.mkdir()
+    image = patterned_image.resize((384, 256))
+    save_jpeg(image, source / "z-reference.jpg", quality=95)
+    save_jpeg(image, source / "a-compressed.jpg", quality=10)
+    manifest = _manifest(
+        tmp_path / "ground-truth.json",
+        [{"id": "ranked", "members": ["z-reference.jpg", "a-compressed.jpg"]}],
+    )
+
+    first_report = build_quality_report(scan(source), source, manifest)
+    second = build_quality_report(scan(source), source, manifest).groups[0]
+    first = first_report.groups[0]
+
+    assert first == second
+    assert first.conclusion == "preferred"
+    assert first.members[0].rank == 1
+    assert first.members[1].rank == 2
+    assert first.comparisons[0].evidence
+    assert all(not item.exif_available for item in first_report.indicators)

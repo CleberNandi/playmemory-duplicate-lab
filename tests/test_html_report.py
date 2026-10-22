@@ -147,3 +147,5 @@ def test_cli_quality_uses_explicit_manifest(tmp_path: Path, patterned_image):
     document = (output / "duplicate-lab-gallery.html").read_text(encoding="utf-8")
     assert "known —" in document
     assert "confirmada por manifesto local" in document
+    assert "Comparações par a par" in document
+    assert "nível 1" in document

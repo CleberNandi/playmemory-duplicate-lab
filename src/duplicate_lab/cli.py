@@ -114,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
             quality_requested = args.quality or args.quality_manifest is not None
             if quality_requested and "html" not in formats:
                 raise ValueError("A analise de qualidade requer formato html ou all")
+            if args.retention_policy and "html" not in formats:
+                raise ValueError("A política de retenção requer formato html ou all")
             quality_report = (
                 build_quality_report(result, args.directory, args.quality_manifest)
                 if quality_requested
