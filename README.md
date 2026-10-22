@@ -19,6 +19,8 @@ uv run duplicate-lab report /caminho/das/fotos --output-dir /caminho/separado/ga
   --format html --quality --quality-manifest /caminho/ground-truth.json
 uv run duplicate-lab report /caminho/das/fotos --output-dir /caminho/separado/galeria \
   --format html --retention-policy /caminho/retention-policy.json
+uv run duplicate-lab benchmark-copydays /caminho/copydays \
+  --output-dir reports/copydays-full
 ```
 
 Extensões podem ser configuradas com `--extensions jpg,jpeg`. A normalização estrutural usa uma
@@ -169,3 +171,23 @@ uv run ruff format --check .
 
 Os testes criam imagens sintéticas em diretórios temporários. Fotografias pessoais não fazem parte
 do repositório nem são necessárias para executar a suíte.
+
+## Benchmark INRIA Copydays
+
+O subcomando `benchmark-copydays` é um adaptador de avaliação isolado. Ele espera 157 JPEGs em
+`original/` e os nove blocos oficiais em `scale-jpeg/jpegqual/{3,5,8,10,15,20,30,50,75}/`
+(também aceita `jpegqual/` diretamente). `--include-strong` inclui `strong/` quando esse conjunto
+estiver disponível. `--max-queries` limita deterministicamente a execução para smoke tests.
+
+Cada consulta é ranqueada contra os originais pela menor distância pHash nas quatro rotações; em
+empates, o nome do original define a ordem. O limiar padrão 8 seleciona candidatos. Somente os
+candidatos passam por SSIM/MAE e pela classificação heurística existente. Assim, Recall@K/MRR,
+recall de candidatos e precisão/recall de pares permanecem métricas separadas. O universo binário
+é o produto consulta × originais, com exatamente um original positivo por consulta Scale+JPEG.
+
+Os relatórios JSON, CSV e HTML registram denominadores, tempos e pico das alocações Python. O HTML
+não incorpora imagens e limita exemplos por amostragem determinística. A fonte oficial descreve o
+dataset em <https://thoth.inrialpes.fr/~jegou/data.php.html#copydays>; a relação de ground truth
+segue as implementações públicas de avaliação DINO/SSCD: correspondência 1:1 nos blocos JPEG e
+prefixo de quatro caracteres no conjunto Strong. Não há calibração nem ajuste automático de
+limiares.

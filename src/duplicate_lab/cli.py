@@ -7,6 +7,7 @@ import json
 import logging
 from pathlib import Path
 
+from duplicate_lab.benchmark_copydays import run_benchmark, write_benchmark_reports
 from duplicate_lab.inventory import build_inventory
 from duplicate_lab.quality import build_quality_report
 from duplicate_lab.reporting import validate_output_directory, write_reports
@@ -76,6 +77,16 @@ def parser() -> argparse.ArgumentParser:
         type=Path,
         help="Política JSON externa para recomendações de retenção de cópias exatas",
     )
+    benchmark = commands.add_parser(
+        "benchmark-copydays", help="Avaliar o detector no INRIA Copydays"
+    )
+    benchmark.add_argument(
+        "dataset_root", type=Path, help="Raiz extraída com original/ e jpegqual/"
+    )
+    benchmark.add_argument("--output-dir", type=Path, required=True)
+    benchmark.add_argument("--include-strong", action="store_true")
+    benchmark.add_argument("--max-queries", type=int, help="Limite determinístico para smoke test")
+    benchmark.add_argument("--overwrite", action="store_true")
     return root
 
 
@@ -99,6 +110,18 @@ def main(argv: list[str] | None = None) -> int:
         format="%(levelname)s %(name)s %(message)s",
     )
     try:
+        if args.command == "benchmark-copydays":
+            if args.max_queries is not None and args.max_queries < 1:
+                raise ValueError("--max-queries deve ser positivo")
+            result = run_benchmark(
+                args.dataset_root,
+                include_strong=args.include_strong,
+                max_queries=args.max_queries,
+            )
+            for path in write_benchmark_reports(result, args.output_dir, overwrite=args.overwrite):
+                print(f"written: {path}")
+            print(json.dumps(result["metrics"], indent=2, ensure_ascii=False))
+            return 0
         if args.command == "inventory":
             records = build_inventory(args.directory, args.extensions)
             print(json.dumps([item.to_dict() for item in records], indent=2, ensure_ascii=False))
