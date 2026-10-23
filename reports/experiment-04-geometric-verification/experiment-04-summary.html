@@ -1,0 +1,1596 @@
+<!doctype html><html lang='pt-BR'><meta charset='utf-8'><title>Experimento 04 — Verificação Geométrica</title><style>body{font:15px system-ui;max-width:1200px;margin:auto;padding:2rem}pre{white-space:pre-wrap;background:#f4f4f4;padding:1rem}</style><h1>Experimento 04 — Verificação Geométrica</h1><p>Relatório local resumido; nenhuma fotografia está incorporada.</p><pre>{
+  &quot;schema_version&quot;: 1,
+  &quot;experiment&quot;: &quot;04-geometric-verification&quot;,
+  &quot;mode&quot;: &quot;final&quot;,
+  &quot;generated_at_utc&quot;: &quot;2026-10-23T13:48:17.609730+00:00&quot;,
+  &quot;code_revision&quot;: &quot;04.2-config-aware-homography&quot;,
+  &quot;code_base_commit&quot;: &quot;b14ffe4d7eaa25dee7505508620202975711bdf9&quot;,
+  &quot;seed&quot;: 202503,
+  &quot;metric_audit&quot;: {
+    &quot;experiment_03_impact&quot;: &quot;Published precision/recall pair counts are arithmetically correct. The field named false_positive_rate measured only synthetic negative-query acceptance, so it did not describe the 4,394 incorrect positive-query pairs. Experiment 04 adds pair FPR and query-with-FP rate; Experiment 03 files remain unchanged.&quot;,
+    &quot;pair_rule&quot;: &quot;one query-candidate decision; the ground-truth candidate is the sole positive&quot;,
+    &quot;precision_denominator&quot;: &quot;all confirmed query-candidate pairs&quot;,
+    &quot;recall_denominator&quot;: &quot;positive queries (one expected pair per query)&quot;,
+    &quot;pair_fpr_denominator&quot;: &quot;all evaluated non-ground-truth query-candidate pairs&quot;,
+    &quot;query_fpr_denominator&quot;: &quot;positive queries; event is at least one incorrect confirmation&quot;,
+    &quot;multiple_false_confirmations&quot;: &quot;counted individually for pair precision/FPR and once for query FPR&quot;,
+    &quot;experiment_03_ranking&quot;: &quot;ORB: descending (inliers, inlier ratio, filtered matches, negative median distance), lexical path tie-break. Union: ascending pHash rank first, ORB rank second; therefore pHash dominated ordering even when it had poor Strong retrieval.&quot;
+  },
+  &quot;partition&quot;: {
+    &quot;unit&quot;: &quot;Copydays capture identity&quot;,
+    &quot;rule&quot;: &quot;SHA-256(seed:capture_id), same as Experiment 03&quot;,
+    &quot;calibration_queries&quot;: 78,
+    &quot;evaluation_queries&quot;: 151,
+    &quot;calibration_natural_pairs&quot;: 37,
+    &quot;evaluation_natural_pairs&quot;: 84,
+    &quot;calibration_distractors&quot;: 128,
+    &quot;evaluation_distractors&quot;: 128,
+    &quot;distractor_overlap&quot;: false,
+    &quot;leakage_check&quot;: true,
+    &quot;caveat&quot;: &quot;Strong test identities were reported in Experiment 03 and are not a prospectively unseen benchmark. They were not used to select Experiment 04 thresholds. Natural evaluation pairs and distractors are identity-disjoint from calibration. The final database contains only its held-out distractor half, so absolute results are not directly comparable to the 256-distractor Experiment 03 scenario.&quot;
+  },
+  &quot;configuration&quot;: {
+    &quot;selected_index&quot;: 0,
+    &quot;selected_method&quot;: &quot;mutual&quot;,
+    &quot;selected&quot;: {
+      &quot;ratio_threshold&quot;: 0.75,
+      &quot;min_matches&quot;: 8,
+      &quot;min_inliers&quot;: 8,
+      &quot;min_inlier_ratio&quot;: 0.35,
+      &quot;min_inlier_coverage&quot;: 0.02,
+      &quot;min_grid_cells&quot;: 3,
+      &quot;max_symmetric_error&quot;: 5.0,
+      &quot;min_corner_area_ratio&quot;: 0.03,
+      &quot;max_corner_area_ratio&quot;: 12.0,
+      &quot;max_condition&quot;: 100000000.0,
+      &quot;max_perspective&quot;: 0.003,
+      &quot;min_scale&quot;: 0.12,
+      &quot;max_scale&quot;: 8.0,
+      &quot;max_shear_cosine&quot;: 0.65,
+      &quot;ransac_reprojection_threshold&quot;: 4.0,
+      &quot;seed&quot;: 202503
+    },
+    &quot;selection_scope&quot;: &quot;confirmation method and decision thresholds&quot;,
+    &quot;evidence_parameters_fixed&quot;: [
+      0.75,
+      4.0,
+      202503
+    ],
+    &quot;risk_policy&quot;: {
+      &quot;eligible_methods&quot;: [
+        &quot;mutual&quot;,
+        &quot;conservative&quot;
+      ],
+      &quot;maximum_pair_fpr&quot;: 0.001,
+      &quot;maximum_query_fpr&quot;: 0.05,
+      &quot;objective&quot;: &quot;maximize confirmation recall, then precision, then stable method/config order&quot;
+    },
+    &quot;evidence_reuse&quot;: &quot;Only decision thresholds reuse evidence. Cache keys include ratio threshold, RANSAC threshold, and seed; changing any of them forces recomputation.&quot;,
+    &quot;evidence_parameter_semantics&quot;: {
+      &quot;requires_recomputation&quot;: [
+        &quot;ratio_threshold&quot;,
+        &quot;ransac_reprojection_threshold&quot;,
+        &quot;seed&quot;
+      ],
+      &quot;decision_only_reuses_measurements&quot;: [
+        &quot;min_matches&quot;,
+        &quot;min_inliers&quot;,
+        &quot;min_inlier_ratio&quot;,
+        &quot;min_inlier_coverage&quot;,
+        &quot;min_grid_cells&quot;,
+        &quot;max_symmetric_error&quot;,
+        &quot;min_corner_area_ratio&quot;,
+        &quot;max_corner_area_ratio&quot;,
+        &quot;max_condition&quot;,
+        &quot;max_perspective&quot;,
+        &quot;min_scale&quot;,
+        &quot;max_scale&quot;,
+        &quot;max_shear_cosine&quot;
+      ]
+    }
+  },
+  &quot;prior_exploratory_results&quot;: {
+    &quot;status&quot;: &quot;obsolete_not_homologated&quot;,
+    &quot;database&quot;: &quot;157 originals plus all 256 distractors&quot;,
+    &quot;mutual&quot;: {
+      &quot;precision&quot;: 0.9847328244274809,
+      &quot;confirmation_recall&quot;: 0.8543046357615894,
+      &quot;false_positive_pairs&quot;: 2
+    },
+    &quot;warning&quot;: &quot;Observed before configuration plumbing and calibration-distribution corrections; retained only as exploratory evidence and not used for final selection.&quot;
+  },
+  &quot;calibration&quot;: [
+    {
+      &quot;config&quot;: {
+        &quot;ratio_threshold&quot;: 0.75,
+        &quot;min_matches&quot;: 8,
+        &quot;min_inliers&quot;: 8,
+        &quot;min_inlier_ratio&quot;: 0.35,
+        &quot;min_inlier_coverage&quot;: 0.02,
+        &quot;min_grid_cells&quot;: 3,
+        &quot;max_symmetric_error&quot;: 5.0,
+        &quot;min_corner_area_ratio&quot;: 0.03,
+        &quot;max_corner_area_ratio&quot;: 12.0,
+        &quot;max_condition&quot;: 100000000.0,
+        &quot;max_perspective&quot;: 0.003,
+        &quot;min_scale&quot;: 0.12,
+        &quot;max_scale&quot;: 8.0,
+        &quot;max_shear_cosine&quot;: 0.65,
+        &quot;ransac_reprojection_threshold&quot;: 4.0,
+        &quot;seed&quot;: 202503
+      },
+      &quot;metrics&quot;: {
+        &quot;current&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 1196,
+          &quot;true_positive_pairs&quot;: 63,
+          &quot;false_positive_pairs&quot;: 1133,
+          &quot;false_negative_pairs&quot;: 15,
+          &quot;precision&quot;: 0.052675585284280936,
+          &quot;confirmation_recall&quot;: 0.8076923076923077,
+          &quot;false_positive_rate_per_pair&quot;: 0.05114662332972192,
+          &quot;queries_with_false_positive&quot;: 61,
+          &quot;query_false_positive_rate&quot;: 0.782051282051282,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.041386894376096356,
+              0.06682872341878592
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.7066498081657022,
+              0.8798489895117625
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              0.048322591492887555,
+              0.05412630848480502
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.6783908645244479,
+              0.8592330333465614
+            ]
+          }
+        },
+        &quot;selective&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 62,
+          &quot;true_positive_pairs&quot;: 53,
+          &quot;false_positive_pairs&quot;: 9,
+          &quot;false_negative_pairs&quot;: 25,
+          &quot;precision&quot;: 0.8548387096774194,
+          &quot;confirmation_recall&quot;: 0.6794871794871795,
+          &quot;false_positive_rate_per_pair&quot;: 0.00040628385698808235,
+          &quot;queries_with_false_positive&quot;: 9,
+          &quot;query_false_positive_rate&quot;: 0.11538461538461539,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.7465637464683084,
+              0.92170676943653
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.5696044750171564,
+              0.7725198236280314
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              0.0002137655497331371,
+              0.0007720512111160649
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.06190440604142225,
+              0.2049720968617468
+            ]
+          }
+        },
+        &quot;mutual&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 63,
+          &quot;true_positive_pairs&quot;: 62,
+          &quot;false_positive_pairs&quot;: 1,
+          &quot;false_negative_pairs&quot;: 16,
+          &quot;precision&quot;: 0.9841269841269841,
+          &quot;confirmation_recall&quot;: 0.7948717948717948,
+          &quot;false_positive_rate_per_pair&quot;: 4.5142650776453595e-05,
+          &quot;queries_with_false_positive&quot;: 1,
+          &quot;query_false_positive_rate&quot;: 0.01282051282051282,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.9154127455383438,
+              0.9971925780924489
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.692458195735871,
+              0.8696031520383659
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              7.968625804659872e-06,
+              0.0002556909591239488
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.0022666733888537863,
+              0.06911023028849367
+            ]
+          }
+        },
+        &quot;conservative&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 35,
+          &quot;true_positive_pairs&quot;: 34,
+          &quot;false_positive_pairs&quot;: 1,
+          &quot;false_negative_pairs&quot;: 44,
+          &quot;precision&quot;: 0.9714285714285714,
+          &quot;confirmation_recall&quot;: 0.4358974358974359,
+          &quot;false_positive_rate_per_pair&quot;: 4.5142650776453595e-05,
+          &quot;queries_with_false_positive&quot;: 1,
+          &quot;query_false_positive_rate&quot;: 0.01282051282051282,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.8546659090672868,
+              0.9949386386341466
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.33143062712963534,
+              0.5463821233542262
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              7.968625804659872e-06,
+              0.0002556909591239488
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.0022666733888537863,
+              0.06911023028849367
+            ]
+          }
+        }
+      },
+      &quot;natural_negatives&quot;: {
+        &quot;current&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        },
+        &quot;selective&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        },
+        &quot;mutual&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        },
+        &quot;conservative&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        }
+      }
+    },
+    {
+      &quot;config&quot;: {
+        &quot;ratio_threshold&quot;: 0.75,
+        &quot;min_matches&quot;: 8,
+        &quot;min_inliers&quot;: 10,
+        &quot;min_inlier_ratio&quot;: 0.45,
+        &quot;min_inlier_coverage&quot;: 0.02,
+        &quot;min_grid_cells&quot;: 4,
+        &quot;max_symmetric_error&quot;: 5.0,
+        &quot;min_corner_area_ratio&quot;: 0.03,
+        &quot;max_corner_area_ratio&quot;: 12.0,
+        &quot;max_condition&quot;: 100000000.0,
+        &quot;max_perspective&quot;: 0.003,
+        &quot;min_scale&quot;: 0.12,
+        &quot;max_scale&quot;: 8.0,
+        &quot;max_shear_cosine&quot;: 0.65,
+        &quot;ransac_reprojection_threshold&quot;: 4.0,
+        &quot;seed&quot;: 202503
+      },
+      &quot;metrics&quot;: {
+        &quot;current&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 1196,
+          &quot;true_positive_pairs&quot;: 63,
+          &quot;false_positive_pairs&quot;: 1133,
+          &quot;false_negative_pairs&quot;: 15,
+          &quot;precision&quot;: 0.052675585284280936,
+          &quot;confirmation_recall&quot;: 0.8076923076923077,
+          &quot;false_positive_rate_per_pair&quot;: 0.05114662332972192,
+          &quot;queries_with_false_positive&quot;: 61,
+          &quot;query_false_positive_rate&quot;: 0.782051282051282,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.041386894376096356,
+              0.06682872341878592
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.7066498081657022,
+              0.8798489895117625
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              0.048322591492887555,
+              0.05412630848480502
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.6783908645244479,
+              0.8592330333465614
+            ]
+          }
+        },
+        &quot;selective&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 50,
+          &quot;true_positive_pairs&quot;: 49,
+          &quot;false_positive_pairs&quot;: 1,
+          &quot;false_negative_pairs&quot;: 29,
+          &quot;precision&quot;: 0.98,
+          &quot;confirmation_recall&quot;: 0.6282051282051282,
+          &quot;false_positive_rate_per_pair&quot;: 4.5142650776453595e-05,
+          &quot;queries_with_false_positive&quot;: 1,
+          &quot;query_false_positive_rate&quot;: 0.01282051282051282,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.8950431352816304,
+              0.9964608319110235
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.5173084842745487,
+              0.7270660147577283
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              7.968625804659872e-06,
+              0.0002556909591239488
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.0022666733888537863,
+              0.06911023028849367
+            ]
+          }
+        },
+        &quot;mutual&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 63,
+          &quot;true_positive_pairs&quot;: 62,
+          &quot;false_positive_pairs&quot;: 1,
+          &quot;false_negative_pairs&quot;: 16,
+          &quot;precision&quot;: 0.9841269841269841,
+          &quot;confirmation_recall&quot;: 0.7948717948717948,
+          &quot;false_positive_rate_per_pair&quot;: 4.5142650776453595e-05,
+          &quot;queries_with_false_positive&quot;: 1,
+          &quot;query_false_positive_rate&quot;: 0.01282051282051282,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.9154127455383438,
+              0.9971925780924489
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.692458195735871,
+              0.8696031520383659
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              7.968625804659872e-06,
+              0.0002556909591239488
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.0022666733888537863,
+              0.06911023028849367
+            ]
+          }
+        },
+        &quot;conservative&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 33,
+          &quot;true_positive_pairs&quot;: 33,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_negative_pairs&quot;: 45,
+          &quot;precision&quot;: 1.0,
+          &quot;confirmation_recall&quot;: 0.4230769230769231,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;queries_with_false_positive&quot;: 0,
+          &quot;query_false_positive_rate&quot;: 0.0,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.8957265699643882,
+              1.0
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.3195888522235069,
+              0.5337864483571269
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              0.0,
+              0.00017338993793853446
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.0,
+              0.04693945377411976
+            ]
+          }
+        }
+      },
+      &quot;natural_negatives&quot;: {
+        &quot;current&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        },
+        &quot;selective&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        },
+        &quot;mutual&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        },
+        &quot;conservative&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        }
+      }
+    },
+    {
+      &quot;config&quot;: {
+        &quot;ratio_threshold&quot;: 0.75,
+        &quot;min_matches&quot;: 8,
+        &quot;min_inliers&quot;: 12,
+        &quot;min_inlier_ratio&quot;: 0.5,
+        &quot;min_inlier_coverage&quot;: 0.04,
+        &quot;min_grid_cells&quot;: 4,
+        &quot;max_symmetric_error&quot;: 3.5,
+        &quot;min_corner_area_ratio&quot;: 0.03,
+        &quot;max_corner_area_ratio&quot;: 12.0,
+        &quot;max_condition&quot;: 100000000.0,
+        &quot;max_perspective&quot;: 0.003,
+        &quot;min_scale&quot;: 0.12,
+        &quot;max_scale&quot;: 8.0,
+        &quot;max_shear_cosine&quot;: 0.65,
+        &quot;ransac_reprojection_threshold&quot;: 4.0,
+        &quot;seed&quot;: 202503
+      },
+      &quot;metrics&quot;: {
+        &quot;current&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 1196,
+          &quot;true_positive_pairs&quot;: 63,
+          &quot;false_positive_pairs&quot;: 1133,
+          &quot;false_negative_pairs&quot;: 15,
+          &quot;precision&quot;: 0.052675585284280936,
+          &quot;confirmation_recall&quot;: 0.8076923076923077,
+          &quot;false_positive_rate_per_pair&quot;: 0.05114662332972192,
+          &quot;queries_with_false_positive&quot;: 61,
+          &quot;query_false_positive_rate&quot;: 0.782051282051282,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.041386894376096356,
+              0.06682872341878592
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.7066498081657022,
+              0.8798489895117625
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              0.048322591492887555,
+              0.05412630848480502
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.6783908645244479,
+              0.8592330333465614
+            ]
+          }
+        },
+        &quot;selective&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 49,
+          &quot;true_positive_pairs&quot;: 48,
+          &quot;false_positive_pairs&quot;: 1,
+          &quot;false_negative_pairs&quot;: 30,
+          &quot;precision&quot;: 0.9795918367346939,
+          &quot;confirmation_recall&quot;: 0.6153846153846154,
+          &quot;false_positive_rate_per_pair&quot;: 4.5142650776453595e-05,
+          &quot;queries_with_false_positive&quot;: 1,
+          &quot;query_false_positive_rate&quot;: 0.01282051282051282,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.8930623153224584,
+              0.9963884204614692
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.5044258131764942,
+              0.7155112359525552
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              7.968625804659872e-06,
+              0.0002556909591239488
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.0022666733888537863,
+              0.06911023028849367
+            ]
+          }
+        },
+        &quot;mutual&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 63,
+          &quot;true_positive_pairs&quot;: 62,
+          &quot;false_positive_pairs&quot;: 1,
+          &quot;false_negative_pairs&quot;: 16,
+          &quot;precision&quot;: 0.9841269841269841,
+          &quot;confirmation_recall&quot;: 0.7948717948717948,
+          &quot;false_positive_rate_per_pair&quot;: 4.5142650776453595e-05,
+          &quot;queries_with_false_positive&quot;: 1,
+          &quot;query_false_positive_rate&quot;: 0.01282051282051282,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.9154127455383438,
+              0.9971925780924489
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.692458195735871,
+              0.8696031520383659
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              7.968625804659872e-06,
+              0.0002556909591239488
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.0022666733888537863,
+              0.06911023028849367
+            ]
+          }
+        },
+        &quot;conservative&quot;: {
+          &quot;positive_query_denominator&quot;: 78,
+          &quot;evaluated_pair_denominator&quot;: 22230,
+          &quot;negative_pair_denominator&quot;: 22152,
+          &quot;confirmed_pair_denominator&quot;: 33,
+          &quot;true_positive_pairs&quot;: 33,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_negative_pairs&quot;: 45,
+          &quot;precision&quot;: 1.0,
+          &quot;confirmation_recall&quot;: 0.4230769230769231,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;queries_with_false_positive&quot;: 0,
+          &quot;query_false_positive_rate&quot;: 0.0,
+          &quot;candidate_recall&quot;: 0.8717948717948718,
+          &quot;recall_at_1&quot;: 0.8333333333333334,
+          &quot;recall_at_5&quot;: 0.8589743589743589,
+          &quot;recall_at_10&quot;: 0.8717948717948718,
+          &quot;confidence_intervals_95_wilson&quot;: {
+            &quot;precision&quot;: [
+              0.8957265699643882,
+              1.0
+            ],
+            &quot;confirmation_recall&quot;: [
+              0.3195888522235069,
+              0.5337864483571269
+            ],
+            &quot;false_positive_rate_per_pair&quot;: [
+              0.0,
+              0.00017338993793853446
+            ],
+            &quot;query_false_positive_rate&quot;: [
+              0.0,
+              0.04693945377411976
+            ]
+          }
+        }
+      },
+      &quot;natural_negatives&quot;: {
+        &quot;current&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        },
+        &quot;selective&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        },
+        &quot;mutual&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        },
+        &quot;conservative&quot;: {
+          &quot;verified_negative_pairs&quot;: 37,
+          &quot;false_positive_pairs&quot;: 0,
+          &quot;false_positive_rate_per_pair&quot;: 0.0,
+          &quot;false_positive_rate_95_wilson&quot;: [
+            0.0,
+            0.09406095745514377
+          ],
+          &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+        }
+      }
+    }
+  ],
+  &quot;evaluation&quot;: {
+    &quot;metrics&quot;: {
+      &quot;current&quot;: {
+        &quot;positive_query_denominator&quot;: 151,
+        &quot;evaluated_pair_denominator&quot;: 43035,
+        &quot;negative_pair_denominator&quot;: 42884,
+        &quot;confirmed_pair_denominator&quot;: 2389,
+        &quot;true_positive_pairs&quot;: 135,
+        &quot;false_positive_pairs&quot;: 2254,
+        &quot;false_negative_pairs&quot;: 16,
+        &quot;precision&quot;: 0.056508999581414816,
+        &quot;confirmation_recall&quot;: 0.8940397350993378,
+        &quot;false_positive_rate_per_pair&quot;: 0.05256039548549576,
+        &quot;queries_with_false_positive&quot;: 141,
+        &quot;query_false_positive_rate&quot;: 0.9337748344370861,
+        &quot;candidate_recall&quot;: 0.9006622516556292,
+        &quot;recall_at_1&quot;: 0.8410596026490066,
+        &quot;recall_at_5&quot;: 0.8741721854304636,
+        &quot;recall_at_10&quot;: 0.9006622516556292,
+        &quot;confidence_intervals_95_wilson&quot;: {
+          &quot;precision&quot;: [
+            0.047941835839921516,
+            0.06650017319235207
+          ],
+          &quot;confirmation_recall&quot;: [
+            0.8348078487208429,
+            0.9337194721025016
+          ],
+          &quot;false_positive_rate_per_pair&quot;: [
+            0.05048809313582385,
+            0.05471285500421966
+          ],
+          &quot;query_false_positive_rate&quot;: [
+            0.882392181938275,
+            0.963633692245407
+          ]
+        }
+      },
+      &quot;selective&quot;: {
+        &quot;positive_query_denominator&quot;: 151,
+        &quot;evaluated_pair_denominator&quot;: 43035,
+        &quot;negative_pair_denominator&quot;: 42884,
+        &quot;confirmed_pair_denominator&quot;: 126,
+        &quot;true_positive_pairs&quot;: 116,
+        &quot;false_positive_pairs&quot;: 10,
+        &quot;false_negative_pairs&quot;: 35,
+        &quot;precision&quot;: 0.9206349206349206,
+        &quot;confirmation_recall&quot;: 0.7682119205298014,
+        &quot;false_positive_rate_per_pair&quot;: 0.00023318720268631659,
+        &quot;queries_with_false_positive&quot;: 10,
+        &quot;query_false_positive_rate&quot;: 0.06622516556291391,
+        &quot;candidate_recall&quot;: 0.9006622516556292,
+        &quot;recall_at_1&quot;: 0.8410596026490066,
+        &quot;recall_at_5&quot;: 0.8741721854304636,
+        &quot;recall_at_10&quot;: 0.9006622516556292,
+        &quot;confidence_intervals_95_wilson&quot;: {
+          &quot;precision&quot;: [
+            0.8600577420320875,
+            0.9563216001818101
+          ],
+          &quot;confirmation_recall&quot;: [
+            0.6947595343059677,
+            0.8283557008763088
+          ],
+          &quot;false_positive_rate_per_pair&quot;: [
+            0.00012667033627503788,
+            0.00042923546617504397
+          ],
+          &quot;query_false_positive_rate&quot;: [
+            0.03636630775459303,
+            0.11760781806172506
+          ]
+        }
+      },
+      &quot;mutual&quot;: {
+        &quot;positive_query_denominator&quot;: 151,
+        &quot;evaluated_pair_denominator&quot;: 43035,
+        &quot;negative_pair_denominator&quot;: 42884,
+        &quot;confirmed_pair_denominator&quot;: 131,
+        &quot;true_positive_pairs&quot;: 129,
+        &quot;false_positive_pairs&quot;: 2,
+        &quot;false_negative_pairs&quot;: 22,
+        &quot;precision&quot;: 0.9847328244274809,
+        &quot;confirmation_recall&quot;: 0.8543046357615894,
+        &quot;false_positive_rate_per_pair&quot;: 4.663744053726331e-05,
+        &quot;queries_with_false_positive&quot;: 1,
+        &quot;query_false_positive_rate&quot;: 0.006622516556291391,
+        &quot;candidate_recall&quot;: 0.9006622516556292,
+        &quot;recall_at_1&quot;: 0.8410596026490066,
+        &quot;recall_at_5&quot;: 0.8741721854304636,
+        &quot;recall_at_10&quot;: 0.9006622516556292,
+        &quot;confidence_intervals_95_wilson&quot;: {
+          &quot;precision&quot;: [
+            0.9460425961812451,
+            0.995803243678264
+          ],
+          &quot;confirmation_recall&quot;: [
+            0.78925330445889,
+            0.9017754630041174
+          ],
+          &quot;false_positive_rate_per_pair&quot;: [
+            1.2789493820042857e-05,
+            0.0001700502040396881
+          ],
+          &quot;query_false_positive_rate&quot;: [
+            0.0011699648169822205,
+            0.036556330958829965
+          ]
+        }
+      },
+      &quot;conservative&quot;: {
+        &quot;positive_query_denominator&quot;: 151,
+        &quot;evaluated_pair_denominator&quot;: 43035,
+        &quot;negative_pair_denominator&quot;: 42884,
+        &quot;confirmed_pair_denominator&quot;: 77,
+        &quot;true_positive_pairs&quot;: 76,
+        &quot;false_positive_pairs&quot;: 1,
+        &quot;false_negative_pairs&quot;: 75,
+        &quot;precision&quot;: 0.987012987012987,
+        &quot;confirmation_recall&quot;: 0.5033112582781457,
+        &quot;false_positive_rate_per_pair&quot;: 2.3318720268631656e-05,
+        &quot;queries_with_false_positive&quot;: 1,
+        &quot;query_false_positive_rate&quot;: 0.006622516556291391,
+        &quot;candidate_recall&quot;: 0.9006622516556292,
+        &quot;recall_at_1&quot;: 0.8410596026490066,
+        &quot;recall_at_5&quot;: 0.8741721854304636,
+        &quot;recall_at_10&quot;: 0.9006622516556292,
+        &quot;confidence_intervals_95_wilson&quot;: {
+          &quot;precision&quot;: [
+            0.9300363315482386,
+            0.9977038418278451
+          ],
+          &quot;confirmation_recall&quot;: [
+            0.42447504442015704,
+            0.5819831683598711
+          ],
+          &quot;false_positive_rate_per_pair&quot;: [
+            4.116232694060607e-06,
+            0.00013209020209187648
+          ],
+          &quot;query_false_positive_rate&quot;: [
+            0.0011699648169822205,
+            0.036556330958829965
+          ]
+        }
+      }
+    },
+    &quot;natural_negatives&quot;: {
+      &quot;current&quot;: {
+        &quot;verified_negative_pairs&quot;: 84,
+        &quot;false_positive_pairs&quot;: 0,
+        &quot;false_positive_rate_per_pair&quot;: 0.0,
+        &quot;false_positive_rate_95_wilson&quot;: [
+          0.0,
+          0.043733265332143306
+        ],
+        &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+      },
+      &quot;selective&quot;: {
+        &quot;verified_negative_pairs&quot;: 84,
+        &quot;false_positive_pairs&quot;: 0,
+        &quot;false_positive_rate_per_pair&quot;: 0.0,
+        &quot;false_positive_rate_95_wilson&quot;: [
+          0.0,
+          0.043733265332143306
+        ],
+        &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+      },
+      &quot;mutual&quot;: {
+        &quot;verified_negative_pairs&quot;: 84,
+        &quot;false_positive_pairs&quot;: 0,
+        &quot;false_positive_rate_per_pair&quot;: 0.0,
+        &quot;false_positive_rate_95_wilson&quot;: [
+          0.0,
+          0.043733265332143306
+        ],
+        &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+      },
+      &quot;conservative&quot;: {
+        &quot;verified_negative_pairs&quot;: 84,
+        &quot;false_positive_pairs&quot;: 0,
+        &quot;false_positive_rate_per_pair&quot;: 0.0,
+        &quot;false_positive_rate_95_wilson&quot;: [
+          0.0,
+          0.043733265332143306
+        ],
+        &quot;evidence&quot;: &quot;INRIA layout and the reference Copydays evaluation implemented by DINO/SSCD: 1:1 correspondence for jpegqual blocks; four-character capture prefix for strong; different Copydays original capture IDs are distinct photographs&quot;
+      }
+    },
+    &quot;fusion&quot;: {
+      &quot;phash&quot;: {
+        &quot;recall_at_1&quot;: 0.17218543046357615,
+        &quot;recall_at_5&quot;: 0.23841059602649006,
+        &quot;recall_at_10&quot;: 0.26490066225165565
+      },
+      &quot;orb&quot;: {
+        &quot;recall_at_1&quot;: 0.8410596026490066,
+        &quot;recall_at_5&quot;: 0.8741721854304636,
+        &quot;recall_at_10&quot;: 0.9006622516556292
+      },
+      &quot;legacy_union&quot;: {
+        &quot;recall_at_1&quot;: 0.17218543046357615,
+        &quot;recall_at_5&quot;: 0.23841059602649006,
+        &quot;recall_at_10&quot;: 0.26490066225165565
+      },
+      &quot;union_without_reordering&quot;: {
+        &quot;recall_at_1&quot;: 0.17218543046357615,
+        &quot;recall_at_5&quot;: 0.23841059602649006,
+        &quot;recall_at_10&quot;: 0.26490066225165565
+      },
+      &quot;rrf&quot;: {
+        &quot;recall_at_1&quot;: 0.3443708609271523,
+        &quot;recall_at_5&quot;: 0.4768211920529801,
+        &quot;recall_at_10&quot;: 0.6158940397350994
+      }
+    }
+  },
+  &quot;false_positive_analysis&quot;: {
+    &quot;total_current_false_positive_pairs&quot;: 2254,
+    &quot;sample_rule&quot;: &quot;first 12 by SHA-256(seed:query:candidate)&quot;,
+    &quot;samples&quot;: [
+      {
+        &quot;query&quot;: &quot;strong/210301.jpg&quot;,
+        &quot;candidate&quot;: &quot;/srv/workstation-data/Workspace/personal/datasets/copydays-distractors-v1/database/db-0253.png&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 1800,
+          &quot;ratio_matches&quot;: 17,
+          &quot;mutual_matches&quot;: 0,
+          &quot;median_distance&quot;: 63.0,
+          &quot;unique_train_ratio&quot;: 0.6470588235294118,
+          &quot;inliers&quot;: 8,
+          &quot;inlier_ratio&quot;: 0.47058823529411764,
+          &quot;query_coverage&quot;: 0.6279334425926208,
+          &quot;candidate_coverage&quot;: 0.2376718819141388,
+          &quot;inlier_query_coverage&quot;: 0.4375450611114502,
+          &quot;inlier_candidate_coverage&quot;: 0.1383046805858612,
+          &quot;query_grid_cells&quot;: 7,
+          &quot;candidate_grid_cells&quot;: 4,
+          &quot;reprojection_error&quot;: 0.8581619262695312,
+          &quot;inverse_reprojection_error&quot;: 205.92562866210938,
+          &quot;symmetric_error&quot;: 103.39189529418945,
+          &quot;determinant&quot;: -0.0001482014681003309,
+          &quot;condition&quot;: 405549051.2898115,
+          &quot;scale_min&quot;: 0.0005336458994064562,
+          &quot;scale_max&quot;: 0.27771499465313093,
+          &quot;shear_cosine&quot;: 0.9999898287831224,
+          &quot;perspective&quot;: 0.0017140503614782904,
+          &quot;corner_area_ratio&quot;: 4.2544470893012156e-05,
+          &quot;homography&quot;: [
+            [
+              -0.10465203413096687,
+              -0.1877964065742488,
+              125.51713074039777
+            ],
+            [
+              -0.08617885493507876,
+              -0.1532304454906516,
+              102.8827211942741
+            ],
+            [
+              -0.0008319146135605536,
+              -0.0014986282786028872,
+              1.0
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      },
+      {
+        &quot;query&quot;: &quot;strong/205201.jpg&quot;,
+        &quot;candidate&quot;: &quot;/srv/workstation-data/Workspace/personal/datasets/copydays-distractors-v1/database/db-0199.png&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 1800,
+          &quot;ratio_matches&quot;: 15,
+          &quot;mutual_matches&quot;: 0,
+          &quot;median_distance&quot;: 56.0,
+          &quot;unique_train_ratio&quot;: 0.6666666666666666,
+          &quot;inliers&quot;: 8,
+          &quot;inlier_ratio&quot;: 0.5333333333333333,
+          &quot;query_coverage&quot;: 0.4486335217952728,
+          &quot;candidate_coverage&quot;: 0.27070313692092896,
+          &quot;inlier_query_coverage&quot;: 0.28095829486846924,
+          &quot;inlier_candidate_coverage&quot;: 0.007324220612645149,
+          &quot;query_grid_cells&quot;: 3,
+          &quot;candidate_grid_cells&quot;: 2,
+          &quot;reprojection_error&quot;: 0.21715205907821655,
+          &quot;inverse_reprojection_error&quot;: 1.7914835214614868,
+          &quot;symmetric_error&quot;: 1.0043177902698517,
+          &quot;determinant&quot;: -0.008220082097149618,
+          &quot;condition&quot;: 4070222.722717138,
+          &quot;scale_min&quot;: 0.008989357967400809,
+          &quot;scale_max&quot;: 0.9144237137912552,
+          &quot;shear_cosine&quot;: 0.9997191192335665,
+          &quot;perspective&quot;: 0.005844038556790172,
+          &quot;corner_area_ratio&quot;: 0.0007356537712944879,
+          &quot;homography&quot;: [
+            [
+              0.1718654399668641,
+              -0.3052747144762706,
+              54.038635270461945
+            ],
+            [
+              0.39379015453302774,
+              -0.747295437119577,
+              146.82621208488038
+            ],
+            [
+              0.0027791567141970033,
+              -0.005140921572168153,
+              1.0
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      },
+      {
+        &quot;query&quot;: &quot;strong/204402.jpg&quot;,
+        &quot;candidate&quot;: &quot;/srv/workstation-data/Workspace/personal/datasets/copydays-distractors-v1/database/db-0090.png&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 1800,
+          &quot;ratio_matches&quot;: 12,
+          &quot;mutual_matches&quot;: 0,
+          &quot;median_distance&quot;: 65.0,
+          &quot;unique_train_ratio&quot;: 0.5,
+          &quot;inliers&quot;: 9,
+          &quot;inlier_ratio&quot;: 0.75,
+          &quot;query_coverage&quot;: 0.4083716869354248,
+          &quot;candidate_coverage&quot;: 0.327949196100235,
+          &quot;inlier_query_coverage&quot;: 0.4083716869354248,
+          &quot;inlier_candidate_coverage&quot;: 0.11949748545885086,
+          &quot;query_grid_cells&quot;: 4,
+          &quot;candidate_grid_cells&quot;: 3,
+          &quot;reprojection_error&quot;: 0.03039335086941719,
+          &quot;inverse_reprojection_error&quot;: 68.15724182128906,
+          &quot;symmetric_error&quot;: 34.09381758607924,
+          &quot;determinant&quot;: -9.325670442086565e-05,
+          &quot;condition&quot;: 3449120376.8378735,
+          &quot;scale_min&quot;: 0.000372944066351862,
+          &quot;scale_max&quot;: 0.25005547167730136,
+          &quot;shear_cosine&quot;: 0.9042062826404468,
+          &quot;perspective&quot;: 0.0014120101493282048,
+          &quot;corner_area_ratio&quot;: 1.483493381076389e-06,
+          &quot;homography&quot;: [
+            [
+              0.0008470435345105336,
+              -0.1933745438585788,
+              136.92329337104667
+            ],
+            [
+              0.00021217626997797025,
+              -0.1585351736650324,
+              112.37982806091019
+            ],
+            [
+              5.559098856231206e-06,
+              -0.001411999206170374,
+              1.0
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      },
+      {
+        &quot;query&quot;: &quot;strong/212103.jpg&quot;,
+        &quot;candidate&quot;: &quot;original/212700.jpg&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 969,
+          &quot;ratio_matches&quot;: 15,
+          &quot;mutual_matches&quot;: 1,
+          &quot;median_distance&quot;: 36.0,
+          &quot;unique_train_ratio&quot;: 0.6666666666666666,
+          &quot;inliers&quot;: 8,
+          &quot;inlier_ratio&quot;: 0.5333333333333333,
+          &quot;query_coverage&quot;: 0.4348522126674652,
+          &quot;candidate_coverage&quot;: 0.2535380423069,
+          &quot;inlier_query_coverage&quot;: 0.3032914102077484,
+          &quot;inlier_candidate_coverage&quot;: 0.05977335199713707,
+          &quot;query_grid_cells&quot;: 4,
+          &quot;candidate_grid_cells&quot;: 3,
+          &quot;reprojection_error&quot;: 1.2872428894042969,
+          &quot;inverse_reprojection_error&quot;: 41.546512603759766,
+          &quot;symmetric_error&quot;: 21.41687774658203,
+          &quot;determinant&quot;: 1.0916880297759743,
+          &quot;condition&quot;: 35091366.26752851,
+          &quot;scale_min&quot;: 0.32419301559643254,
+          &quot;scale_max&quot;: 3.3674014468434725,
+          &quot;shear_cosine&quot;: 0.9816328397337182,
+          &quot;perspective&quot;: 0.008957537128613064,
+          &quot;corner_area_ratio&quot;: 4.325310389200846e-05,
+          &quot;homography&quot;: [
+            [
+              1.7778792853524574,
+              -2.053492601857723,
+              212.12005935268652
+            ],
+            [
+              1.5973620421367265,
+              -1.230951462380237,
+              85.74017676952208
+            ],
+            [
+              0.004331944065453396,
+              -0.007840391063222847,
+              1.0
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      },
+      {
+        &quot;query&quot;: &quot;strong/202101.jpg&quot;,
+        &quot;candidate&quot;: &quot;/srv/workstation-data/Workspace/personal/datasets/copydays-distractors-v1/database/db-0148.png&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 1800,
+          &quot;ratio_matches&quot;: 15,
+          &quot;mutual_matches&quot;: 0,
+          &quot;median_distance&quot;: 57.0,
+          &quot;unique_train_ratio&quot;: 0.5333333333333333,
+          &quot;inliers&quot;: 8,
+          &quot;inlier_ratio&quot;: 0.5333333333333333,
+          &quot;query_coverage&quot;: 0.6590669751167297,
+          &quot;candidate_coverage&quot;: 0.24281252920627594,
+          &quot;inlier_query_coverage&quot;: 0.6512347459793091,
+          &quot;inlier_candidate_coverage&quot;: 0.13380208611488342,
+          &quot;query_grid_cells&quot;: 6,
+          &quot;candidate_grid_cells&quot;: 3,
+          &quot;reprojection_error&quot;: 0.38382628560066223,
+          &quot;inverse_reprojection_error&quot;: 619.8028564453125,
+          &quot;symmetric_error&quot;: 310.0933413654566,
+          &quot;determinant&quot;: 0.5099482195150569,
+          &quot;condition&quot;: 26656106.806786623,
+          &quot;scale_min&quot;: 0.03998305646348917,
+          &quot;scale_max&quot;: 12.754107980232021,
+          &quot;shear_cosine&quot;: 0.9999507595471733,
+          &quot;perspective&quot;: 0.0799394869760615,
+          &quot;corner_area_ratio&quot;: 2.2570292154947918e-05,
+          &quot;homography&quot;: [
+            [
+              2.1639100841243755,
+              -6.182337794944756,
+              128.70824408180684
+            ],
+            [
+              3.6887909412742372,
+              -10.303294761619599,
+              137.26726112772192
+            ],
+            [
+              0.026954321614565253,
+              -0.07525812995480612,
+              1.0
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      },
+      {
+        &quot;query&quot;: &quot;strong/201202.jpg&quot;,
+        &quot;candidate&quot;: &quot;/srv/workstation-data/Workspace/personal/datasets/copydays-distractors-v1/database/db-0197.png&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 1800,
+          &quot;ratio_matches&quot;: 20,
+          &quot;mutual_matches&quot;: 0,
+          &quot;median_distance&quot;: 56.5,
+          &quot;unique_train_ratio&quot;: 0.4,
+          &quot;inliers&quot;: 11,
+          &quot;inlier_ratio&quot;: 0.55,
+          &quot;query_coverage&quot;: 0.568736732006073,
+          &quot;candidate_coverage&quot;: 0.1411830335855484,
+          &quot;inlier_query_coverage&quot;: 0.3154454231262207,
+          &quot;inlier_candidate_coverage&quot;: 0.038055289536714554,
+          &quot;query_grid_cells&quot;: 7,
+          &quot;candidate_grid_cells&quot;: 2,
+          &quot;reprojection_error&quot;: 0.16413797438144684,
+          &quot;inverse_reprojection_error&quot;: 222.21104431152344,
+          &quot;symmetric_error&quot;: 111.18759114295244,
+          &quot;determinant&quot;: -0.0001236957301634207,
+          &quot;condition&quot;: 697628137.2939312,
+          &quot;scale_min&quot;: 0.000376021539417169,
+          &quot;scale_max&quot;: 0.3289591611032453,
+          &quot;shear_cosine&quot;: 0.9999954032184067,
+          &quot;perspective&quot;: 0.0031450217720247245,
+          &quot;corner_area_ratio&quot;: 0.0,
+          &quot;homography&quot;: [
+            [
+              -0.24728488074821944,
+              0.11229442550053884,
+              86.50782927553176
+            ],
+            [
+              -0.16882024889716704,
+              0.07716310247190947,
+              58.911875426670846
+            ],
+            [
+              -0.0028619450465409875,
+              0.0013040063255556102,
+              1.0
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      },
+      {
+        &quot;query&quot;: &quot;strong/206801.jpg&quot;,
+        &quot;candidate&quot;: &quot;/srv/workstation-data/Workspace/personal/datasets/copydays-distractors-v1/database/db-0194.png&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 1052,
+          &quot;ratio_matches&quot;: 20,
+          &quot;mutual_matches&quot;: 0,
+          &quot;median_distance&quot;: 60.5,
+          &quot;unique_train_ratio&quot;: 0.4,
+          &quot;inliers&quot;: 11,
+          &quot;inlier_ratio&quot;: 0.55,
+          &quot;query_coverage&quot;: 0.32916972041130066,
+          &quot;candidate_coverage&quot;: 0.2528570294380188,
+          &quot;inlier_query_coverage&quot;: 0.3257550895214081,
+          &quot;inlier_candidate_coverage&quot;: 0.05857813358306885,
+          &quot;query_grid_cells&quot;: 7,
+          &quot;candidate_grid_cells&quot;: 2,
+          &quot;reprojection_error&quot;: 0.18091896176338196,
+          &quot;inverse_reprojection_error&quot;: 141.37362670898438,
+          &quot;symmetric_error&quot;: 70.77727283537388,
+          &quot;determinant&quot;: 0.00019797035621798187,
+          &quot;condition&quot;: 341018173.4382007,
+          &quot;scale_min&quot;: 0.000415106812026443,
+          &quot;scale_max&quot;: 0.47691425551785477,
+          &quot;shear_cosine&quot;: 0.9999958592674069,
+          &quot;perspective&quot;: 0.005558926113291381,
+          &quot;corner_area_ratio&quot;: 1.3245476616753471e-08,
+          &quot;homography&quot;: [
+            [
+              0.11281381600838226,
+              -0.33586975938898367,
+              63.88392037132467
+            ],
+            [
+              0.10217581957682532,
+              -0.30244343102344295,
+              57.179340206667774
+            ],
+            [
+              0.0017729455088428354,
+              -0.005268616873118298,
+              1.0
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      },
+      {
+        &quot;query&quot;: &quot;strong/204702.jpg&quot;,
+        &quot;candidate&quot;: &quot;/srv/workstation-data/Workspace/personal/datasets/copydays-distractors-v1/database/db-0171.png&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 1800,
+          &quot;ratio_matches&quot;: 18,
+          &quot;mutual_matches&quot;: 0,
+          &quot;median_distance&quot;: 54.5,
+          &quot;unique_train_ratio&quot;: 0.5555555555555556,
+          &quot;inliers&quot;: 8,
+          &quot;inlier_ratio&quot;: 0.4444444444444444,
+          &quot;query_coverage&quot;: 0.4292308986186981,
+          &quot;candidate_coverage&quot;: 0.259039044380188,
+          &quot;inlier_query_coverage&quot;: 0.1918017566204071,
+          &quot;inlier_candidate_coverage&quot;: 0.06123749911785126,
+          &quot;query_grid_cells&quot;: 3,
+          &quot;candidate_grid_cells&quot;: 3,
+          &quot;reprojection_error&quot;: 0.874975323677063,
+          &quot;inverse_reprojection_error&quot;: 3.7621922492980957,
+          &quot;symmetric_error&quot;: 2.3185837864875793,
+          &quot;determinant&quot;: -0.05386868063617726,
+          &quot;condition&quot;: 276431.9819241963,
+          &quot;scale_min&quot;: 0.13429435671221968,
+          &quot;scale_max&quot;: 0.40112393368555926,
+          &quot;shear_cosine&quot;: 0.5023130927054169,
+          &quot;perspective&quot;: 0.004778554744305142,
+          &quot;corner_area_ratio&quot;: 0.04077137841118707,
+          &quot;homography&quot;: [
+            [
+              -0.15743637292860102,
+              0.14893398937202934,
+              91.69437500585303
+            ],
+            [
+              -0.021635767534546792,
+              0.3626289195198525,
+              -8.050728704612158
+            ],
+            [
+              -0.0022938251743350965,
+              0.004192010438191649,
+              1.0
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      },
+      {
+        &quot;query&quot;: &quot;strong/211401.jpg&quot;,
+        &quot;candidate&quot;: &quot;/srv/workstation-data/Workspace/personal/datasets/copydays-distractors-v1/database/db-0176.png&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 1800,
+          &quot;ratio_matches&quot;: 26,
+          &quot;mutual_matches&quot;: 1,
+          &quot;median_distance&quot;: 60.0,
+          &quot;unique_train_ratio&quot;: 0.5,
+          &quot;inliers&quot;: 11,
+          &quot;inlier_ratio&quot;: 0.4230769230769231,
+          &quot;query_coverage&quot;: 0.36373957991600037,
+          &quot;candidate_coverage&quot;: 0.2684500515460968,
+          &quot;inlier_query_coverage&quot;: 0.30219829082489014,
+          &quot;inlier_candidate_coverage&quot;: 0.09378908574581146,
+          &quot;query_grid_cells&quot;: 4,
+          &quot;candidate_grid_cells&quot;: 4,
+          &quot;reprojection_error&quot;: 1.6852545738220215,
+          &quot;inverse_reprojection_error&quot;: 21.84504508972168,
+          &quot;symmetric_error&quot;: 11.76514983177185,
+          &quot;determinant&quot;: 0.12101284740224941,
+          &quot;condition&quot;: 26935.614263459134,
+          &quot;scale_min&quot;: 0.09946428006096601,
+          &quot;scale_max&quot;: 1.2166462907897717,
+          &quot;shear_cosine&quot;: 0.9158221197782691,
+          &quot;perspective&quot;: 0.006254778341706852,
+          &quot;corner_area_ratio&quot;: 0.3686818281809489,
+          &quot;homography&quot;: [
+            [
+              -0.19661853821518285,
+              -0.5518300489268332,
+              -0.6662618394717889
+            ],
+            [
+              -0.158109346324707,
+              -1.0592202424599253,
+              111.43924477989847
+            ],
+            [
+              -0.004112163454011246,
+              -0.00471299945166339,
+              1.0
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      },
+      {
+        &quot;query&quot;: &quot;strong/205302.jpg&quot;,
+        &quot;candidate&quot;: &quot;/srv/workstation-data/Workspace/personal/datasets/copydays-distractors-v1/database/db-0014.png&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 1800,
+          &quot;ratio_matches&quot;: 15,
+          &quot;mutual_matches&quot;: 0,
+          &quot;median_distance&quot;: 53.0,
+          &quot;unique_train_ratio&quot;: 0.6666666666666666,
+          &quot;inliers&quot;: 8,
+          &quot;inlier_ratio&quot;: 0.5333333333333333,
+          &quot;query_coverage&quot;: 0.1746879518032074,
+          &quot;candidate_coverage&quot;: 0.21206903457641602,
+          &quot;inlier_query_coverage&quot;: 0.13336323201656342,
+          &quot;inlier_candidate_coverage&quot;: 0.07095810770988464,
+          &quot;query_grid_cells&quot;: 2,
+          &quot;candidate_grid_cells&quot;: 3,
+          &quot;reprojection_error&quot;: 1.6129863262176514,
+          &quot;inverse_reprojection_error&quot;: 57.27412414550781,
+          &quot;symmetric_error&quot;: 29.443555235862732,
+          &quot;determinant&quot;: 0.00783046667815586,
+          &quot;condition&quot;: 1596377.6882915464,
+          &quot;scale_min&quot;: 0.028424518358211463,
+          &quot;scale_max&quot;: 0.27548282716613726,
+          &quot;shear_cosine&quot;: 0.963879853489452,
+          &quot;perspective&quot;: 0.0019110592822594913,
+          &quot;corner_area_ratio&quot;: 0.029499080446031358,
+          &quot;homography&quot;: [
+            [
+              -0.06961815155245173,
+              -0.0899707929687559,
+              57.47859139414503
+            ],
+            [
+              -0.09423316874014705,
+              -0.2342593020640338,
+              152.45159447046444
+            ],
+            [
+              -0.001228439419887487,
+              -0.0014639276525759924,
+              0.9999999999999999
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      },
+      {
+        &quot;query&quot;: &quot;strong/204501.jpg&quot;,
+        &quot;candidate&quot;: &quot;/srv/workstation-data/Workspace/personal/datasets/copydays-distractors-v1/database/db-0178.png&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 1800,
+          &quot;ratio_matches&quot;: 16,
+          &quot;mutual_matches&quot;: 1,
+          &quot;median_distance&quot;: 53.5,
+          &quot;unique_train_ratio&quot;: 0.375,
+          &quot;inliers&quot;: 12,
+          &quot;inlier_ratio&quot;: 0.75,
+          &quot;query_coverage&quot;: 0.19367054104804993,
+          &quot;candidate_coverage&quot;: 0.21735002100467682,
+          &quot;inlier_query_coverage&quot;: 0.1414816826581955,
+          &quot;inlier_candidate_coverage&quot;: 0.2072875201702118,
+          &quot;query_grid_cells&quot;: 5,
+          &quot;candidate_grid_cells&quot;: 2,
+          &quot;reprojection_error&quot;: 0.3933773338794708,
+          &quot;inverse_reprojection_error&quot;: 1786.3599853515625,
+          &quot;symmetric_error&quot;: 893.376681342721,
+          &quot;determinant&quot;: 0.0016503598432614022,
+          &quot;condition&quot;: 22446889.081896875,
+          &quot;scale_min&quot;: 0.000708540267548794,
+          &quot;scale_max&quot;: 2.3292393091091212,
+          &quot;shear_cosine&quot;: 0.9999998093113278,
+          &quot;perspective&quot;: 0.013967805169112505,
+          &quot;corner_area_ratio&quot;: 6.887647840711805e-07,
+          &quot;homography&quot;: [
+            [
+              -0.7483295722608344,
+              0.6300330179038703,
+              70.43976841392049
+            ],
+            [
+              -1.6181519188000568,
+              1.3601477406675353,
+              151.32071946260638
+            ],
+            [
+              -0.010687315057965113,
+              0.008993379681414445,
+              1.0
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      },
+      {
+        &quot;query&quot;: &quot;strong/209802.jpg&quot;,
+        &quot;candidate&quot;: &quot;/srv/workstation-data/Workspace/personal/datasets/copydays-distractors-v1/database/db-0029.png&quot;,
+        &quot;evidence&quot;: {
+          &quot;raw_matches&quot;: 1800,
+          &quot;ratio_matches&quot;: 23,
+          &quot;mutual_matches&quot;: 1,
+          &quot;median_distance&quot;: 60.0,
+          &quot;unique_train_ratio&quot;: 0.5217391304347826,
+          &quot;inliers&quot;: 9,
+          &quot;inlier_ratio&quot;: 0.391304347826087,
+          &quot;query_coverage&quot;: 0.3818492889404297,
+          &quot;candidate_coverage&quot;: 0.2249940186738968,
+          &quot;inlier_query_coverage&quot;: 0.3479277789592743,
+          &quot;inlier_candidate_coverage&quot;: 0.017549999058246613,
+          &quot;query_grid_cells&quot;: 5,
+          &quot;candidate_grid_cells&quot;: 2,
+          &quot;reprojection_error&quot;: 0.08503762632608414,
+          &quot;inverse_reprojection_error&quot;: 272.3520812988281,
+          &quot;symmetric_error&quot;: 136.2185594625771,
+          &quot;determinant&quot;: -2.3595334113582992e-05,
+          &quot;condition&quot;: 33010628.779787496,
+          &quot;scale_min&quot;: 5.520233770882747e-05,
+          &quot;scale_max&quot;: 0.4274336032296438,
+          &quot;shear_cosine&quot;: 0.9999999634040139,
+          &quot;perspective&quot;: 0.004215773819229056,
+          &quot;corner_area_ratio&quot;: 3.7087334526909723e-07,
+          &quot;homography&quot;: [
+            [
+              -0.22483377237134286,
+              0.3054897572705339,
+              90.32292910555533
+            ],
+            [
+              -0.11674571657950689,
+              0.1587315623358303,
+              46.86370229653784
+            ],
+            [
+              -0.002492896563747654,
+              0.0033997375806600542,
+              1.0
+            ]
+          ],
+          &quot;degenerate&quot;: false,
+          &quot;plausible&quot;: false,
+          &quot;status&quot;: &quot;analyzed&quot;
+        },
+        &quot;probable_cause&quot;: &quot;repetitive_correspondences&quot;,
+        &quot;cause_status&quot;: &quot;heuristic_not_human_confirmed&quot;
+      }
+    ]
+  },
+  &quot;timing&quot;: {
+    &quot;total_seconds&quot;: 502.26943785200274,
+    &quot;scope&quot;: &quot;feature extraction, calibration, evaluation, diagnostics and hashing&quot;
+  },
+  &quot;memory&quot;: {
+    &quot;peak_rss_bytes&quot;: 206987264,
+    &quot;scope&quot;: &quot;process-lifetime Linux ru_maxrss including native OpenCV allocations&quot;
+  },
+  &quot;limitations&quot;: [
+    &quot;A plausible homography is correspondence evidence, never proof of duplicate identity.&quot;,
+    &quot;Natural negatives use Copydays identity and nearest-pHash hard-pair selection.&quot;,
+    &quot;The held-out Strong identities were previously observed in Experiment 03 reporting.&quot;,
+    &quot;Final and calibration databases use disjoint halves of the available distractors; each is smaller than the Experiment 03 target database.&quot;,
+    &quot;Threshold search is small; Wilson intervals do not model identity clustering.&quot;,
+    &quot;ORB exhaustive matching cost is not representative of an indexed production system.&quot;
+  ],
+  &quot;review_record&quot;: {
+    &quot;implementation_review&quot;: [
+      &quot;configuration values reach homography plausibility checks&quot;,
+      &quot;mutual confirmation has one implementation&quot;,
+      &quot;evidence cache key covers all evidence-changing configuration&quot;,
+      &quot;calibration and evaluation query identities and distractors are disjoint&quot;,
+      &quot;legacy Experiment 03 baseline retained as exploratory evidence&quot;
+    ],
+    &quot;dataset_counts&quot;: {
+      &quot;originals&quot;: 157,
+      &quot;strong_queries_total&quot;: 229,
+      &quot;distractors_total&quot;: 256
+    },
+    &quot;seeds&quot;: {
+      &quot;partition_and_opencv&quot;: 202503
+    }
+  }
+}</pre></html>
