@@ -10,6 +10,17 @@ Classification = Literal["exact_duplicate", "visual_candidate", "similar_image",
 
 
 @dataclass(frozen=True)
+class FileIdentity:
+    """Metadata snapshot used to detect observable changes during a scan."""
+
+    device: int
+    inode: int
+    size: int
+    mtime_ns: int
+    ctime_ns: int
+
+
+@dataclass(frozen=True)
 class PhotoRecord:
     path: Path
     size_bytes: int
@@ -19,9 +30,11 @@ class PhotoRecord:
     exif_orientation: int | None = None
     compatible: bool = False
     error: str | None = None
+    identity: FileIdentity | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
+        data.pop("identity")
         data["path"] = str(self.path)
         return data
 

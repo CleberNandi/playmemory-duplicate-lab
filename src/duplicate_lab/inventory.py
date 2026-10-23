@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PIL import Image, UnidentifiedImageError
 
-from duplicate_lab.models import PhotoRecord
+from duplicate_lab.models import FileIdentity, PhotoRecord
 
 LOGGER = logging.getLogger(__name__)
 DEFAULT_EXTENSIONS = frozenset({".jpg", ".jpeg"})
@@ -27,8 +27,19 @@ def discover_files(directory: Path, extensions: Iterable[str] | None = None) -> 
     )
 
 
+def file_identity(stat_result) -> FileIdentity:
+    return FileIdentity(
+        stat_result.st_dev,
+        stat_result.st_ino,
+        stat_result.st_size,
+        stat_result.st_mtime_ns,
+        stat_result.st_ctime_ns,
+    )
+
+
 def inspect_file(path: Path) -> PhotoRecord:
-    size = path.stat().st_size
+    identity = file_identity(path.stat())
+    size = identity.size
     try:
         with Image.open(path) as image:
             image.verify()
@@ -36,6 +47,8 @@ def inspect_file(path: Path) -> PhotoRecord:
             width, height = image.size
             image_format = image.format
             orientation = image.getexif().get(274)
+        if file_identity(path.stat()) != identity:
+            raise OSError(f"Arquivo alterado durante o inventário: {path}")
         return PhotoRecord(
             path=path.resolve(),
             size_bytes=size,
@@ -45,10 +58,13 @@ def inspect_file(path: Path) -> PhotoRecord:
             exif_orientation=orientation,
             compatible=image_format in {"JPEG"},
             error=None if image_format == "JPEG" else f"unsupported real format: {image_format}",
+            identity=identity,
         )
     except (UnidentifiedImageError, OSError, ValueError) as exc:
         LOGGER.warning("image_validation_failed path=%s error=%s", path, exc)
-        return PhotoRecord(path=path.resolve(), size_bytes=size, error=str(exc))
+        return PhotoRecord(
+            path=path.resolve(), size_bytes=size, error=str(exc), identity=identity
+        )
 
 
 def build_inventory(

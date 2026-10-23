@@ -3,28 +3,54 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from collections import defaultdict
 from pathlib import Path
 
 import imagehash
 from PIL import Image, ImageOps
 
-from duplicate_lab.models import ExactGroup, PhotoRecord
+from duplicate_lab.inventory import file_identity
+from duplicate_lab.models import ExactGroup, FileIdentity, PhotoRecord
 
 
-def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
+def sha256_file(
+    path: Path,
+    chunk_size: int = 1024 * 1024,
+    *,
+    expected_identity: FileIdentity | None = None,
+) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
+        before = file_identity(os.fstat(stream.fileno()))
+        if expected_identity is not None and before != expected_identity:
+            raise OSError(f"Arquivo alterado desde o inventário: {path}")
         while chunk := stream.read(chunk_size):
             digest.update(chunk)
+        after = file_identity(os.fstat(stream.fileno()))
+    if after != before or file_identity(path.stat()) != after:
+        raise OSError(f"Arquivo alterado durante o hashing: {path}")
     return digest.hexdigest()
 
 
 def find_exact_groups(records: tuple[PhotoRecord, ...]) -> tuple[ExactGroup, ...]:
-    groups: dict[str, list[PhotoRecord]] = defaultdict(list)
+    by_size: dict[int, list[PhotoRecord]] = defaultdict(list)
     for record in records:
-        if record.compatible:
-            groups[sha256_file(record.path)].append(record)
+        if not record.compatible:
+            continue
+        if record.identity is not None and file_identity(record.path.stat()) != record.identity:
+            raise OSError(f"Arquivo alterado desde o inventário: {record.path}")
+        by_size[record.size_bytes].append(record)
+
+    groups: dict[str, list[PhotoRecord]] = defaultdict(list)
+    for size in sorted(by_size):
+        candidates = by_size[size]
+        if len(candidates) < 2:
+            continue
+        for record in candidates:
+            groups[
+                sha256_file(record.path, expected_identity=record.identity)
+            ].append(record)
     result = []
     for digest, members in sorted(groups.items()):
         if len(members) > 1:
