@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "experiment": "05B-targeted-orb-false-positive-investigation",
+  "provenance": {
+    "original_report_revision": "04.2-config-aware-homography",
+    "original_experimental_branch": "experiment/local-feature-matching",
+    "experiment_commit": "b9bf4a10bbef4aac14a5945ce9bd0f7dfeecb627",
+    "production_base_commit": "96b214475dc56fa4e828f9c0bf9eb3b3b6db3a3f",
+    "opencv_reported_version": "5.0.0",
+    "dataset_count": 285,
+    "originals_count": 157,
+    "evaluation_distractors_count": 128,
+    "ground_truth_rule": "Copydays original capture_id identity",
+    "query": "strong/214902.jpg",
+    "expected_candidate": "original/214900.jpg"
+  },
+  "orb_config": {
+    "max_side": 1024,
+    "nfeatures": 1800,
+    "scale_factor": 1.2,
+    "nlevels": 8,
+    "fast_threshold": 12,
+    "ratio_threshold": 0.75,
+    "min_filtered_matches": 8,
+    "min_inliers": 8,
+    "min_inlier_ratio": 0.35,
+    "min_spatial_coverage": 0.02,
+    "ransac_reprojection_threshold": 4.0,
+    "max_reprojection_error": 5.0,
+    "seed": 202503
+  },
+  "verification_config": {
+    "ratio_threshold": 0.75,
+    "min_matches": 8,
+    "min_inliers": 8,
+    "min_inlier_ratio": 0.35,
+    "min_inlier_coverage": 0.02,
+    "min_grid_cells": 3,
+    "max_symmetric_error": 5.0,
+    "min_corner_area_ratio": 0.03,
+    "max_corner_area_ratio": 12.0,
+    "max_condition": 100000000.0,
+    "max_perspective": 0.003,
+    "min_scale": 0.12,
+    "max_scale": 8.0,
+    "max_shear_cosine": 0.65,
+    "ransac_reprojection_threshold": 4.0,
+    "seed": 202503
+  },
+  "records": [
+    {
+      "classification": "FP",
+      "query": "strong/214902.jpg",
+      "candidate": "original/202600.jpg",
+      "query_sha256": "af6a495bca3cc501d28ac0ee16740dbede2cee884625c1e6aec2fbde9f524e72",
+      "candidate_sha256": "05a298433ee397024e2b4460dc843e44ccec8eabee27728656c49dd178045b92",
+      "keypoints": {
+        "query": 1800,
+        "candidate": 1800
+      },
+      "direct": {
+        "matches": 41,
+        "inliers": 28,
+        "inlier_ratio": 0.6829268292682927,
+        "inlier_query_coverage": 0.02789326198399067,
+        "inlier_candidate_coverage": 0.05959050729870796,
+        "query_grid_cells": 3,
+        "candidate_grid_cells": 3,
+        "reprojection_error": 1.5125420093536377,
+        "inverse_reprojection_error": 0.8298530578613281,
+        "symmetric_error": 1.171197533607483,
+        "plausible": true,
+        "homography": [
+          [
+            1.9172473099118374,
+            -0.05023607295645638,
+            -1207.959918711745
+          ],
+          [
+            0.04790318959087527,
+            1.980733360189183,
+            -221.86842328182018
+          ],
+          [
+            3.479070222108543e-05,
+            9.949498218966264e-05,
+            1.0
+          ]
+        ]
+      },
+      "mutual": {
+        "matches": 23,
+        "among_direct_inliers": 20,
+        "ransac_inliers": 19,
+        "plausible": true,
+        "median_forward_error": 1.1943609714508057,
+        "homography": [
+          [
+            3.2837621715536445,
+            -0.06375473376209179,
+            -2080.264647754365
+          ],
+          [
+            0.31737510680925823,
+            3.4777998113708906,
+            -588.6571582864648
+          ],
+          [
+            0.0008551295417990259,
+            0.000512929507259652,
+            1.0
+          ]
+        ],
+        "condition": 871626.5520546684,
+        "corner_area_ratio": 3.8113091786702475
+      }
+    },
+    {
+      "classification": "FP",
+      "query": "strong/214902.jpg",
+      "candidate": "original/207800.jpg",
+      "query_sha256": "af6a495bca3cc501d28ac0ee16740dbede2cee884625c1e6aec2fbde9f524e72",
+      "candidate_sha256": "a59a7b0996c4696a4fbbd1b20928e12309556b6630d644702c48e63e223fc226",
+      "keypoints": {
+        "query": 1800,
+        "candidate": 1800
+      },
+      "direct": {
+        "matches": 38,
+        "inliers": 24,
+        "inlier_ratio": 0.631578947368421,
+        "inlier_query_coverage": 0.010667499154806137,
+        "inlier_candidate_coverage": 0.027739286422729492,
+        "query_grid_cells": 2,
+        "candidate_grid_cells": 2,
+        "reprojection_error": 1.3421239852905273,
+        "inverse_reprojection_error": 0.6456878185272217,
+        "symmetric_error": 0.9939059019088745,
+        "plausible": true,
+        "homography": [
+          [
+            2.684113077274808,
+            1.050176952381792,
+            -365.1904181420102
+          ],
+          [
+            0.4532636726171691,
+            3.718111682035168,
+            456.3520148061749
+          ],
+          [
+            0.000343644158442959,
+            0.0017027313474279036,
+            1.0
+          ]
+        ]
+      },
+      "mutual": {
+        "matches": 18,
+        "among_direct_inliers": 16,
+        "ransac_inliers": 16,
+        "plausible": true,
+        "median_forward_error": 1.3440394401550293,
+        "homography": [
+          [
+            2.8652016967188407,
+            0.3493454382929783,
+            -375.11643997636514
+          ],
+          [
+            0.6122539213809792,
+            3.084429380557205,
+            454.1879372429789
+          ],
+          [
+            0.0005808829097169886,
+            0.0006769647011676754,
+            1.0
+          ]
+        ],
+        "condition": 142388.97831392376,
+        "corner_area_ratio": 1.898844559987386
+      }
+    },
+    {
+      "classification": "TP",
+      "query": "strong/214902.jpg",
+      "candidate": "original/214900.jpg",
+      "query_sha256": "af6a495bca3cc501d28ac0ee16740dbede2cee884625c1e6aec2fbde9f524e72",
+      "candidate_sha256": "ca8ea7ad6ab918efa3a40cb7e9730b45d216ca7e1f190c496106389168c5e7aa",
+      "keypoints": {
+        "query": 1800,
+        "candidate": 1800
+      },
+      "direct": {
+        "matches": 124,
+        "inliers": 108,
+        "inlier_ratio": 0.8709677419354839,
+        "inlier_query_coverage": 0.1667499989271164,
+        "inlier_candidate_coverage": 0.3889085352420807,
+        "query_grid_cells": 6,
+        "candidate_grid_cells": 9,
+        "reprojection_error": 1.4808251857757568,
+        "inverse_reprojection_error": 0.7472816109657288,
+        "symmetric_error": 1.1140533983707428,
+        "plausible": true,
+        "homography": [
+          [
+            2.3580371064195127,
+            0.10764290469214026,
+            -269.03263963089705
+          ],
+          [
+            0.13111266402610627,
+            2.2989945275173946,
+            -319.614213874376
+          ],
+          [
+            0.00020405493746930453,
+            0.00021622870217145868,
+            0.9999999999999999
+          ]
+        ]
+      },
+      "mutual": {
+        "matches": 87,
+        "among_direct_inliers": 86,
+        "ransac_inliers": 84,
+        "plausible": true,
+        "median_forward_error": 1.4887158870697021,
+        "homography": [
+          [
+            2.2474906833881554,
+            0.051308043621151926,
+            -235.89810051522835
+          ],
+          [
+            0.11716799023967372,
+            2.166547549364718,
+            -290.96244860717337
+          ],
+          [
+            0.00017248882017392917,
+            0.00010885788603783485,
+            1.0
+          ]
+        ],
+        "condition": 59657.268516913464,
+        "corner_area_ratio": 2.312489668528239
+      }
+    }
+  ],
+  "limitations": [
+    "Comparisons of two identities with common depicted material are not proof of same capture.",
+    "Mutual-only homography computed for diagnostic analysis, not decision in original benchmark.",
+    "Full source integrity against published experiment hash list not yet independently audited.",
+    "No full-corpus mitigation evaluation conducted.",
+    "Visualizations and original photographs deliberately excluded from versioned bundle."
+  ]
+}
