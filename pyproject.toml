@@ -19,6 +19,12 @@ dev = [
   "pytest>=8.3",
   "ruff>=0.12",
 ]
+experiment = [
+  "opencv-python-headless>=5.0.0.93",
+]
+
+[tool.uv]
+default-groups = ["dev", "experiment"]
 
 [build-system]
 requires = ["hatchling"]
