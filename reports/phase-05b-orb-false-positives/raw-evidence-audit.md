@@ -76,3 +76,37 @@ Somente este adendo textual e seus links são destinados ao GitHub. O pacote,
 os JSONs brutos com caminhos pessoais e as seis imagens permanecem fora do
 conteúdo versionado. A 05C ainda requer inventário do corpus, referências e
 partições por família antes de qualquer execução ou recomendação de produção.
+
+
+## Conferência do corpus na workstation — 2026-10-24
+
+Evidência fornecida pelo operador nesta conversa: execução local de scripts
+somente leitura no Arch, comparando arquivos com `source_integrity.before` de
+`experiment-04.json` no commit experimental
+`b9bf4a10bbef4aac14a5945ce9bd0f7dfeecb627`, via `git show`, sem troca de branch.
+Não se trata de leitura direta desses arquivos pelo ambiente Work.
+
+| Conjunto | Esperados | Encontrados | Ausentes | Extras | Hashes divergentes |
+|---|---:|---:|---:|---:|---:|
+| Originais | 157 | 157 | 0 | 0 | 0 |
+| Strong | 229 | 229 | 0 | 0 | 0 |
+| Distratores | 256 | 256 | 0 | 0 | 0 |
+| Total do manifesto histórico | 642 | 642 | 0 | 0 | 0 |
+
+O operador também confirmou a reconstrução da divisão histórica dos distratores:
+ordenação pelo digest SHA-256 de `202503:distractor:{nome}`, primeira metade
+para calibração e segunda para avaliação, 128 em cada conjunto. Assim, os
+arquivos necessários à base histórica de 157 + 128 = 285 candidatos estão
+localizados e seus hashes foram reportados como coincidentes com o manifesto.
+Isso não representa execução ou reconstrução dos 285 resultados do ORB.
+
+Inventário adicional informado: 1.413 imagens em `scale-jpeg`, além das 157
+originais e 229 Strong (1.799 imagens dentro do corpus Copydays). As 1.413
+imagens `scale-jpeg` não foram incluídas nesta conferência de hashes; o total
+642 inclui os 256 distratores externos, não o diretório `scale-jpeg`.
+
+A ressalva de integridade dos arquivos do manifesto fica resolvida no nível de
+verificação local reportada pelo operador. Permanecem sem nova demonstração:
+proveniência exata das regiões compartilhadas, reprodução independente do ORB
+no ambiente original e avaliação inédita da 05C. O corpus histórico segue
+classificado como desenvolvimento/regressão, não holdout prospectivo.
