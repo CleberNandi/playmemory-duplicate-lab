@@ -180,7 +180,7 @@ def test_exact_gallery_renders_plan_roles_offline_without_mutating(tmp_path, pat
     assert "data:image/jpeg;base64," in document
     assert "Preservar no plano" in document
     assert "Candidato à quarentena — não executado" in document
-    assert "ready_for_review" in document
+    assert "Pronto para revisão" in document
     assert "Nenhuma movimentação autorizada ou executada" in document
     assert "similaridade visual não foi executada" in document
     assert "&lt;script&gt;&quot;human&quot;&lt;/script&gt;" in document

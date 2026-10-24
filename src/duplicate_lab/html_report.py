@@ -57,9 +57,9 @@ def _image(
     quality: dict[Path, QualityIndicators] | None = None,
 ) -> str:
     dimensions = (
-        f"{record.width} × {record.height}"
+        f"Dimensões: {record.width} × {record.height}"
         if record and record.width is not None and record.height is not None
-        else "não disponíveis"
+        else "Dimensões não disponíveis"
     )
     size = f"{record.size_bytes:,}".replace(",", ".") if record else "não disponível"
     thumbnail = thumbnails.get(path)
@@ -139,8 +139,12 @@ def _exact_sections(
         plan_facts = ""
         if planned:
             blockers = "; ".join(planned["blockers"]) or "nenhum"
+            status_label = {
+                "ready_for_review": "Pronto para revisão",
+                "blocked": "Bloqueado",
+            }.get(planned["status"], planned["status"])
             plan_facts = (
-                f"<p><strong>Estado:</strong> {_escape(planned['status'])} · "
+                f"<p><strong>Estado:</strong> {_escape(status_label)} · "
                 f"<strong>Bloqueios:</strong> {_escape(blockers)}</p>"
                 f"<p><strong>Motivo da escolha:</strong> {_escape(planned['reason'] or 'pendente')}</p>"
             )

@@ -247,3 +247,6 @@ A galeria reaproveita o HTML local existente e destaca o caminho preservado, can
 protegidos, motivo e bloqueios. Ela mostra miniaturas, permite busca e expansão dos grupos,
 e não altera decisões ou arquivos. Planos desatualizados são rejeitados na geração.
 O HTML é estático: abrir um arquivo antigo não revalida as fotografias.
+
+O [checkpoint para o Photo Manager](docs/photo-manager-handoff.md) reúne capacidades,
+evidências e pendências para a convergência ao produto único. A integração ainda não foi executada.
