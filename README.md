@@ -212,3 +212,25 @@ ausentes ou ambíguas, mantém os limiares de produção e registra Recall@K/MRR
 métricas de confirmação. A tabela de sensibilidade pHash (0, 4, 8, 12 e 16) é apenas análise
 offline; ela não calibra nem altera defaults. Os relatórios incluem tempo de hashing, comparação
 pHash, verificações estruturais, RSS do processo e alocações rastreadas pelo Python.
+
+## Fluxo exato com plano revisável (dry-run)
+
+```bash
+uv run duplicate-lab exact-scan /acervo --output /revisao/scan.json
+uv run duplicate-lab exact-plan /revisao/scan.json \
+  --quarantine-dir /quarentena --output /revisao/plan.json
+uv run duplicate-lab exact-check /revisao/plan.json
+```
+
+O plano inicial explicita escolhas pendentes. Para selecionar o caminho preservado, use
+`--decisions` (SHA-256 → `keep` relativo e `reason`) ou a Retention Policy existente.
+`--dependencies-reviewed` registra revisão humana de catálogos/dependências; sidecars conhecidos,
+links, alterações após scan e conflitos continuam bloqueando grupos. Nenhum comando movimenta
+arquivos, mesmo quando o plano está `ready_for_review`.
+
+Esta descoberta compara bytes dos arquivos com as extensões configuradas (jpg/jpeg por padrão),
+sem validar a imagem nem executar similaridade. Reutiliza o detector exato da versão 0.2.2.
+Os snapshots/planos contêm caminhos privados e devem permanecer locais, fora do Git.
+
+Veja [contrato, exemplos e limites](docs/exact-duplicate-review-plan.md) e a
+[comparação com dupeGuru, com fontes fixadas por commit](docs/dupeguru-comparison.md).

@@ -13,6 +13,13 @@ from duplicate_lab.benchmark_strong import (
     run_strong_benchmark,
     write_strong_reports,
 )
+from duplicate_lab.exact_plan import (
+    build_plan,
+    exact_scan,
+    load_artifact,
+    revalidate_plan,
+    write_artifact,
+)
 from duplicate_lab.inventory import build_inventory
 from duplicate_lab.quality import build_quality_report
 from duplicate_lab.reporting import validate_output_directory, write_reports
@@ -49,6 +56,24 @@ def parser() -> argparse.ArgumentParser:
     )
     root.add_argument("--verbose", action="store_true")
     commands = root.add_subparsers(dest="command", required=True)
+    exact = commands.add_parser(
+        "exact-scan", help="Inventário binário e grupos SHA-256, sem visual"
+    )
+    _add_common(exact)
+    exact.add_argument("--output", type=Path, required=True)
+    plan = commands.add_parser("exact-plan", help="Plano revisável; nunca movimenta arquivos")
+    plan.add_argument("scan_file", type=Path)
+    plan.add_argument("--quarantine-dir", type=Path, required=True)
+    plan.add_argument("--output", type=Path, required=True)
+    plan.add_argument("--retention-policy", type=Path)
+    plan.add_argument("--decisions", type=Path, help="JSON: SHA-256 -> {keep, reason}")
+    plan.add_argument(
+        "--dependencies-reviewed",
+        action="store_true",
+        help="Registrar revisão humana das dependências externas/catálogos",
+    )
+    check = commands.add_parser("exact-check", help="Revalidar plano sem executar ações")
+    check.add_argument("plan_file", type=Path)
     inventory = commands.add_parser("inventory", help="Descobrir e validar imagens")
     _add_common(inventory)
     scan_command = commands.add_parser("scan", help="Executar a pipeline e mostrar o resumo")
@@ -125,6 +150,33 @@ def main(argv: list[str] | None = None) -> int:
         format="%(levelname)s %(name)s %(message)s",
     )
     try:
+        if args.command == "exact-scan":
+            payload = exact_scan(args.directory, args.extensions)
+            write_artifact(payload, args.output, args.directory)
+            print(f"written: {args.output}; exact groups: {len(payload['groups'])}")
+            return 0
+        if args.command == "exact-plan":
+            snapshot = load_artifact(args.scan_file, "exact-scan")
+            policy = load_retention_policy(args.retention_policy) if args.retention_policy else None
+            decisions = (
+                json.loads(args.decisions.read_text(encoding="utf-8")) if args.decisions else None
+            )
+            if decisions is not None and not isinstance(decisions, dict):
+                raise ValueError("Decisões devem ser um objeto JSON")
+            payload = build_plan(
+                snapshot,
+                args.quarantine_dir,
+                policy,
+                decisions,
+                dependencies_reviewed=args.dependencies_reviewed,
+            )
+            write_artifact(payload, args.output, Path(snapshot["root"]))
+            print(f"written: {args.output}; dry-run; action_authorized=false")
+            return 0
+        if args.command == "exact-check":
+            result = revalidate_plan(load_artifact(args.plan_file, "exact-plan"))
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result["unchanged"] and result["ready_for_review"] else 2
         if args.command == "benchmark-copydays-strong":
             if args.max_queries is not None and args.max_queries < 1:
                 raise ValueError("--max-queries deve ser positivo")
