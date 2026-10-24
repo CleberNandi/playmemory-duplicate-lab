@@ -149,3 +149,88 @@ def test_cli_quality_uses_explicit_manifest(tmp_path: Path, patterned_image):
     assert "confirmada por manifesto local" in document
     assert "Comparações par a par" in document
     assert "nível 1" in document
+
+
+def _reviewed_plan(tmp_path, patterned_image):
+    from duplicate_lab.exact_plan import build_plan, exact_scan
+
+    source = tmp_path / "photos"
+    source.mkdir()
+    first = save_jpeg(patterned_image, source / "keep.jpg")
+    (source / 'copy & "test".jpg').write_bytes(first.read_bytes())
+    snapshot = exact_scan(source)
+    digest = snapshot["groups"][0]["sha256"]
+    return build_plan(
+        snapshot,
+        tmp_path / "quarantine",
+        decisions={digest: {"keep": "keep.jpg", "reason": '<script>"human"</script>'}},
+        dependencies_reviewed=True,
+    )
+
+
+def test_exact_gallery_renders_plan_roles_offline_without_mutating(tmp_path, patterned_image):
+    from duplicate_lab.html_report import write_exact_gallery
+
+    plan = _reviewed_plan(tmp_path, patterned_image)
+    source = Path(plan["scan"]["root"])
+    before = {p.name: p.read_bytes() for p in source.iterdir()}
+    output = tmp_path / "gallery.html"
+    write_exact_gallery(plan, output)
+    document = output.read_text()
+    assert "data:image/jpeg;base64," in document
+    assert "Preservar no plano" in document
+    assert "Candidato à quarentena — não executado" in document
+    assert "ready_for_review" in document
+    assert "Nenhuma movimentação autorizada ou executada" in document
+    assert "similaridade visual não foi executada" in document
+    assert "&lt;script&gt;&quot;human&quot;&lt;/script&gt;" in document
+    assert '<script>"human"</script>' not in document
+    assert "http://" not in document and "https://" not in document
+    assert "connect-src 'none'" in document
+    assert before == {p.name: p.read_bytes() for p in source.iterdir()}
+    assert not Path(plan["quarantine"]).exists()
+
+
+def test_exact_gallery_rejects_stale_plan_and_output_conflicts(tmp_path, patterned_image):
+    import pytest
+
+    from duplicate_lab.html_report import write_exact_gallery
+
+    plan = _reviewed_plan(tmp_path, patterned_image)
+    output = tmp_path / "gallery.html"
+    write_exact_gallery(plan, output)
+    with pytest.raises(FileExistsError):
+        write_exact_gallery(plan, output)
+    source = Path(plan["scan"]["root"])
+    with pytest.raises(ValueError, match="fora do acervo"):
+        write_exact_gallery(plan, source / "gallery.html")
+    (source / "keep.jpg").write_bytes(b"changed")
+    stale_output = tmp_path / "stale.html"
+    with pytest.raises(ValueError, match="desatualizado"):
+        write_exact_gallery(plan, stale_output)
+    assert not stale_output.exists()
+
+
+def test_exact_gallery_cli_uses_reviewed_snapshot(tmp_path, patterned_image):
+    from duplicate_lab.exact_plan import write_artifact
+
+    plan = _reviewed_plan(tmp_path, patterned_image)
+    manifest = tmp_path / "plan.json"
+    write_artifact(plan, manifest, Path(plan["scan"]["root"]))
+    output = tmp_path / "gallery.html"
+    assert main(["exact-gallery", str(manifest), "--output", str(output)]) == 0
+    assert "Preservar no plano" in output.read_text()
+
+
+def test_exact_gallery_displays_pending_selection(tmp_path, patterned_image):
+    from duplicate_lab.exact_plan import build_plan
+    from duplicate_lab.html_report import write_exact_gallery
+
+    reviewed = _reviewed_plan(tmp_path, patterned_image)
+    plan = build_plan(reviewed["scan"], Path(reviewed["quarantine"]))
+    output = tmp_path / "gallery.html"
+    write_exact_gallery(plan, output)
+    document = output.read_text()
+    assert "Escolha pendente" in document
+    assert "keep_unresolved" in document
+    assert "Candidato à quarentena — não executado" not in document

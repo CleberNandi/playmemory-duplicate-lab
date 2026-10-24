@@ -113,17 +113,17 @@ A~C. Precisão, recall e F1 exigem um manifesto de *ground truth* revisado por u
 
 ## Homologação local (61 fotografias)
 
-Execução em `/home/arch-nandi/Imagens/Estudo_fotos_duplicadas/`, em modo somente leitura:
+Execução em `/acervo-de-teste/`, em modo somente leitura:
 
 - 61 JPEGs válidos e nenhum arquivo incompatível.
-- Um grupo SHA-256 com os 10 arquivos `QVZndERfaTh1TGdqOTNTeS1tU3hweTRM*`: 9 arquivos e
+- Um grupo SHA-256 com 10 cópias de teste com nomes diferentes: 9 arquivos e
   457.398 bytes redundantes.
 - 156 pares visuais não exatos com pHash <= 8, além dos 45 pares internos ao grupo exato.
 - Todos os 45 pares `mario_office_*` tiveram pHash 0 e foram classificados `similar_image`;
   SSIM mínimo 0,97329 após normalização.
 - Nas comparações contra `photo_quality_95.jpg`, o SSIM foi 0,82410 (qualidade 5), 0,94856
   (qualidade 20), 0,99558 (qualidade 70) e 0,99837 (qualidade 90).
-- Os pares candidatos entre `20210329_115149`, `115150` e `115153` tiveram SSIM 0,40019 a
+- Os pares candidatos entre três capturas distintas da sequência de teste tiveram SSIM 0,40019 a
   0,42503 e permaneceram `visual_candidate`, nunca `exact_duplicate` ou `similar_image`.
 - Nenhum candidato real teve uma rotação diferente de zero como melhor alinhamento nesta execução;
   o caminho de rotação de 180 graus foi validado pelo teste sintético determinístico.
@@ -234,3 +234,16 @@ Os snapshots/planos contêm caminhos privados e devem permanecer locais, fora do
 
 Veja [contrato, exemplos e limites](docs/exact-duplicate-review-plan.md) e a
 [comparação com dupeGuru, com fontes fixadas por commit](docs/dupeguru-comparison.md).
+
+Para visualizar o plano já revisado, sem executar comparação perceptual:
+
+```bash
+uv run duplicate-lab exact-gallery /revisao/plan-reviewed.json \
+  --output /revisao/duplicate-lab-exact-gallery.html
+xdg-open /revisao/duplicate-lab-exact-gallery.html
+```
+
+A galeria reaproveita o HTML local existente e destaca o caminho preservado, candidatos,
+protegidos, motivo e bloqueios. Ela mostra miniaturas, permite busca e expansão dos grupos,
+e não altera decisões ou arquivos. Planos desatualizados são rejeitados na geração.
+O HTML é estático: abrir um arquivo antigo não revalida as fotografias.

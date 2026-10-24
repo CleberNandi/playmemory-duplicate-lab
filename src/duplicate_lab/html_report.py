@@ -8,11 +8,12 @@ from __future__ import annotations
 import base64
 import html
 import io
+import os
 from pathlib import Path
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from duplicate_lab.models import PairResult, PhotoRecord, ScanResult
+from duplicate_lab.models import ExactGroup, PairResult, PhotoRecord, ScanResult
 from duplicate_lab.quality import QualityGroup, QualityIndicators, QualityReport
 from duplicate_lab.retention import RetentionReport
 
@@ -95,20 +96,64 @@ def _exact_sections(
     result: ScanResult,
     records: dict[Path, PhotoRecord],
     thumbnails: dict[Path, str | None],
+    review_plan: dict | None = None,
 ) -> str:
     sections = []
+    plans = {g["sha256"]: g for g in review_plan["groups"]} if review_plan else {}
     for index, group in enumerate(result.exact_groups, 1):
-        images = "".join(_image(records.get(path), path, thumbnails) for path in group.paths)
+        planned = plans.get(group.sha256)
+        images = ""
+        display_paths = group.paths
+        if planned:
+            display_paths = sorted(
+                group.paths,
+                key=lambda p: (
+                    p.relative_to(Path(review_plan["scan"]["root"])).as_posix() != planned["keep"],
+                    str(p),
+                ),
+            )
+        for path in display_paths:
+            label, role = "", ""
+            if planned:
+                relative = path.relative_to(Path(review_plan["scan"]["root"])).as_posix()
+                member = next(m for m in planned["members"] if m["path"] == relative)
+                if member["protected"]:
+                    label, role = "Protegido — fora dos candidatos", "protected"
+                elif relative == planned["keep"]:
+                    label, role = "Preservar no plano", "keep"
+                elif any(c["source"] == relative for c in planned["candidates"]):
+                    label, role = "Candidato à quarentena — não executado", "candidate"
+                else:
+                    label, role = "Escolha pendente", "pending"
+                if relative == planned["keep"] and member["protected"]:
+                    label = "Preservar no plano · protegido"
+            images += (
+                (
+                    f'<div class="plan-member {role}"><p><strong>{_escape(label)}</strong></p>'
+                    + _image(records.get(path), path, thumbnails)
+                    + "</div>"
+                )
+                if planned
+                else _image(records.get(path), path, thumbnails)
+            )
+        plan_facts = ""
+        if planned:
+            blockers = "; ".join(planned["blockers"]) or "nenhum"
+            plan_facts = (
+                f"<p><strong>Estado:</strong> {_escape(planned['status'])} · "
+                f"<strong>Bloqueios:</strong> {_escape(blockers)}</p>"
+                f"<p><strong>Motivo da escolha:</strong> {_escape(planned['reason'] or 'pendente')}</p>"
+            )
         name = min(path.name.casefold() for path in group.paths)
         sections.append(
-            f"""<details class="result exact" data-kind="exact" data-name="{_escape(name)}"
+            f"""<details {"open" if planned else ""} class="result exact" data-kind="exact" data-name="{_escape(" ".join(str(p) for p in group.paths).casefold() if planned else name)}"
               data-phash="" data-ssim="" data-mae="">
               <summary>Grupo exato {index}: {len(group.paths)} arquivos</summary>
               <div class="facts"><span>SHA-256: <code>{_escape(group.sha256)}</code></span>
               <span>Redundâncias: {group.redundant_files}</span>
               <span>Espaço redundante: {group.redundant_bytes:,} bytes</span></div>
               <p class="notice">Bytes idênticos. Nenhum arquivo é recomendado para exclusão.</p>
-              <div class="images">{images}</div></details>"""
+              {plan_facts}<div class="images">{images}</div></details>"""
         )
     return "".join(sections) or '<p class="empty">Nenhum grupo exato encontrado.</p>'
 
@@ -209,6 +254,8 @@ def render_html(
     result: ScanResult,
     quality_report: QualityReport | None = None,
     retention_report: RetentionReport | None = None,
+    *,
+    review_plan: dict | None = None,
 ) -> str:
     """Prepare presentation data and render one offline, self-contained document."""
     records = {record.path: record for record in result.inventory}
@@ -239,14 +286,34 @@ def render_html(
         issues += f"<li>{len(incomplete_pairs)} comparação(ões) com análise incompleta.</li>"
 
     quality = {item.path: item for item in quality_report.indicators} if quality_report else {}
-    exact = _exact_sections(result, records, thumbnails)
-    pairs = _pair_sections(result, records, thumbnails, quality)
+    exact = _exact_sections(result, records, thumbnails, review_plan)
+    pairs = "" if review_plan else _pair_sections(result, records, thumbnails, quality)
     quality_sections = (
         _quality_groups(quality_report.groups, records, thumbnails, quality)
         if quality_report
         else ""
     )
     retention_sections = _retention_groups(retention_report) if retention_report else ""
+    extra_stats = f"""
+<div class="stat"><strong>{len(visual_pairs)}</strong>candidatos visuais</div>
+<div class="stat"><strong>{len(invalid)}</strong>arquivos não classificados</div>
+<div class="stat"><strong>{len(quality_report.groups) if quality_report else 0}</strong>grupos com avaliação técnica</div>
+<div class="stat"><strong>{len(retention_report.recommendations) if retention_report else 0}</strong>recomendações de retenção</div>"""
+    if review_plan:
+        extra_stats = (
+            '<div class="stat"><strong>Somente leitura</strong>nenhuma ação sobre fotos</div>'
+        )
+    plan_banner = ""
+    if review_plan:
+        plan_banner = (
+            '<section class="issues"><h2>Plano de duplicatas exatas · somente leitura</h2>'
+            "<p>Miniaturas e escolhas do plano; similaridade visual não foi executada.</p>"
+            "<p><strong>Nenhuma movimentação autorizada ou executada.</strong> "
+            "Esta página não altera escolhas nem arquivos. Não é a interface definitiva do Photo Manager.</p>"
+            f"<p>Plano: <code>{_escape(review_plan['id'])}</code></p>"
+            "<p>Conteúdo revalidado na geração. Este HTML é um retrato estático; "
+            "alterações posteriores exigem nova revalidação.</p></section>"
+        )
     return f"""<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -265,24 +332,23 @@ figure{{margin:0;min-width:0}}img,.thumb-missing{{display:block;width:100%;heigh
 .thumb-missing{{color:white;display:grid;place-items:center}}figcaption span{{display:block;color:var(--muted);overflow-wrap:anywhere}}
 .facts{{display:flex;flex-wrap:wrap;gap:.6rem 1.4rem;margin-top:1rem}}code{{overflow-wrap:anywhere}}.error{{color:#9b2525;font-weight:700}}
 .quality-members{{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}}.quality-member{{border:1px solid var(--line);border-radius:8px;padding:.75rem}}.quality-member.preferred{{border:3px solid var(--accent)}}
+.plan-member{{border:1px solid var(--line);border-radius:8px;padding:.75rem}}.plan-member.keep{{border:3px solid var(--accent)}}.plan-member.protected{{border:3px solid #6b4f8c}}.plan-member.candidate{{border-left:4px solid var(--warn)}}
 .hidden{{display:none}}@media(max-width:650px){{main{{padding:1rem}}.images{{grid-template-columns:1fr}}}}
 </style></head><body><main>
 <h1>Galeria local de revisão</h1><p class="privacy">Relatório autocontido com miniaturas de fotografias potencialmente privadas. Mantenha-o local.</p>
+{plan_banner}
 <section class="summary" aria-label="Resumo">
-<div class="stat"><strong>{summary["files"]}</strong>fotografias</div>
+<div class="stat"><strong>{summary["files"]}</strong>{"arquivos inventariados" if review_plan else "fotografias"}</div>
 <div class="stat"><strong>{len(result.exact_groups)}</strong>grupos exatos</div>
 <div class="stat"><strong>{summary["exact_redundant_files"]}</strong>duplicatas exatas redundantes</div>
-<div class="stat"><strong>{len(visual_pairs)}</strong>candidatos visuais</div>
-<div class="stat"><strong>{len(invalid)}</strong>arquivos não classificados</div>
-<div class="stat"><strong>{len(quality_report.groups) if quality_report else 0}</strong>grupos com avaliação técnica</div>
-<div class="stat"><strong>{len(retention_report.recommendations) if retention_report else 0}</strong>recomendações de retenção</div>
+{extra_stats}
 </section>
-<p>Métricas disponíveis: SHA-256 para grupos exatos; distância pHash, rotação, SSIM e MAE para candidatos visuais. Classificações são heurísticas.</p>
-<section class="issues"><h2>Erros e análises incompletas</h2><ul>{issues}</ul></section>
+<p>{"Igualdade binária por SHA-256. Escolha de localização registrada separadamente no plano." if review_plan else "Métricas disponíveis: SHA-256 para grupos exatos; distância pHash, rotação, SSIM e MAE para candidatos visuais. Classificações são heurísticas."}</p>
+{"" if review_plan else '<section class="issues"><h2>Erros e análises incompletas</h2><ul>' + issues + "</ul></section>"}
 <section class="controls" aria-label="Controles"><input id="search" type="search" placeholder="Buscar nome de arquivo">
-<select id="filter"><option value="all">Todos os resultados</option><option value="retention">Retenção</option><option value="quality">Avaliação técnica</option><option value="exact">Grupos exatos</option><option value="visual">Candidatos visuais</option><option value="issue">Análises incompletas</option></select>
-<select id="sort"><option value="name">Ordenar por nome</option><option value="phash">Distância pHash</option><option value="ssim-desc">SSIM (maior primeiro)</option><option value="mae">MAE</option></select></section>
-<section id="results"><h2>Resultados: retenção, qualidade, grupos exatos e candidatos visuais</h2>{retention_sections}{quality_sections}{exact}{pairs}</section>
+<select id="filter"><option value="all">Todos os resultados</option><option value="exact">Grupos exatos</option>{"" if review_plan else '<option value="retention">Retenção</option><option value="quality">Avaliação técnica</option><option value="visual">Candidatos visuais</option><option value="issue">Análises incompletas</option>'}</select>
+<select id="sort"><option value="name">Ordenar por nome</option>{"" if review_plan else '<option value="phash">Distância pHash</option><option value="ssim-desc">SSIM (maior primeiro)</option><option value="mae">MAE</option>'}</select></section>
+<section id="results"><h2>{"Grupos exatos do plano" if review_plan else "Resultados: retenção, qualidade, grupos exatos e candidatos visuais"}</h2>{retention_sections}{quality_sections}{exact}{pairs}</section>
 </main><script>
 (() => {{'use strict';const search=document.querySelector('#search'),filter=document.querySelector('#filter'),sort=document.querySelector('#sort'),root=document.querySelector('#results');
 const cards=[...root.querySelectorAll('.result')];function number(card,key,fallback){{const value=Number(card.dataset[key]);return card.dataset[key]===''?fallback:value}}
@@ -290,3 +356,38 @@ function update(){{const query=search.value.toLocaleLowerCase('pt-BR');for(const
 cards.sort((a,b)=>{{if(sort.value==='phash')return number(a,'phash',Infinity)-number(b,'phash',Infinity);if(sort.value==='ssim-desc')return number(b,'ssim',-Infinity)-number(a,'ssim',-Infinity);if(sort.value==='mae')return number(a,'mae',Infinity)-number(b,'mae',Infinity);return a.dataset.name.localeCompare(b.dataset.name,'pt-BR')}}).forEach(card=>root.append(card));}}
 [search,filter,sort].forEach(control=>control.addEventListener('input',update));update();}})();
 </script></body></html>"""
+
+
+def write_exact_gallery(plan: dict, output: Path) -> None:
+    """Render the existing gallery from a local plan, never run perceptual matching."""
+    from duplicate_lab.exact_plan import member_path, revalidate_plan
+
+    def require_current():
+        if not revalidate_plan(plan)["unchanged"]:
+            raise ValueError("Plano desatualizado; revalide e revise antes de gerar a galeria")
+
+    require_current()
+    root = Path(plan["scan"]["root"])
+    target = Path(os.path.abspath(output))
+    member_path(target.parent, target.name)
+    if target == root or root in target.parents:
+        raise ValueError("Galeria deve ficar fora do acervo")
+    records = tuple(
+        PhotoRecord(root / r["path"], r["identity"]["size"], compatible=True)
+        for r in plan["scan"]["inventory"]
+    )
+    sizes = {r["path"]: r["identity"]["size"] for r in plan["scan"]["inventory"]}
+    groups = tuple(
+        ExactGroup(
+            g["sha256"],
+            tuple(root / p for p in g["members"]),
+            len(g["members"]) - 1,
+            sizes[g["members"][0]] * (len(g["members"]) - 1),
+        )
+        for g in plan["scan"]["groups"]
+    )
+    document = render_html(ScanResult(records, groups, ()), review_plan=plan)
+    require_current()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("x", encoding="utf-8") as stream:
+        stream.write(document)

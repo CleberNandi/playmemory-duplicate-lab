@@ -74,6 +74,9 @@ def parser() -> argparse.ArgumentParser:
     )
     check = commands.add_parser("exact-check", help="Revalidar plano sem executar ações")
     check.add_argument("plan_file", type=Path)
+    gallery = commands.add_parser("exact-gallery", help="Visualizar plano exato em HTML local")
+    gallery.add_argument("plan_file", type=Path)
+    gallery.add_argument("--output", type=Path, required=True)
     inventory = commands.add_parser("inventory", help="Descobrir e validar imagens")
     _add_common(inventory)
     scan_command = commands.add_parser("scan", help="Executar a pipeline e mostrar o resumo")
@@ -150,6 +153,12 @@ def main(argv: list[str] | None = None) -> int:
         format="%(levelname)s %(name)s %(message)s",
     )
     try:
+        if args.command == "exact-gallery":
+            from duplicate_lab.html_report import write_exact_gallery
+
+            write_exact_gallery(load_artifact(args.plan_file, "exact-plan"), args.output)
+            print(f"written: {args.output}; galeria somente leitura")
+            return 0
         if args.command == "exact-scan":
             payload = exact_scan(args.directory, args.extensions)
             write_artifact(payload, args.output, args.directory)

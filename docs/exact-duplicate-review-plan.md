@@ -156,3 +156,29 @@ Executada em 2026-10-24, Linux no Work, CPython 3.13.16, dependências do `uv.lo
 Não executados: dupeGuru, workstation Arch, Windows, corpus histórico, fotografias reais,
 movimentação, restauração, interrupção de execução ou testes entre filesystems.
 Não há declaração de PASS para essas capacidades. A aprovação refere-se somente ao dry-run.
+
+## Visualização do plano em HTML local
+
+`duplicate-lab exact-gallery plan-reviewed.json --output galeria.html` reaproveita o renderer
+existente. O plano é revalidado antes e depois da geração das miniaturas; qualquer divergência
+impede gravar a galeria. Um plano bloqueado ainda pode ser mostrado quando está inalterado,
+com seus bloqueios e escolhas pendentes visíveis. Não exige que o plano autorize ações.
+
+Mostra grupos expansíveis, busca por todos os nomes do grupo, miniaturas incorporadas,
+preservado primeiro, candidatos, protegidos e motivo da escolha. Nesta modalidade, não há
+pHash/SSIM/ORB nem avaliação de qualidade. Arquivos binariamente elegíveis não são certificados
+como imagens válidas: uma miniatura que não puder ser decodificada fica indisponível.
+Dimensões não fazem parte deste snapshot e aparecem como não disponíveis na galeria.
+
+O output deve ser novo, fora do acervo e sem symlinks nos ancestrais. O relatório antigo não é
+substituído. O HTML permanece privado e autocontido. Não há botões de movimentação nem edição
+do plano; busca/expansão só alteram a exibição. Um HTML já aberto é um retrato estático e não
+revalida conteúdo em tempo real. A implementação usa as mesmas limitações de concorrência do
+revalidador dry-run e não constitui protocolo de execução seguro.
+
+Validação adicional: 94 testes aprovados (quatro novos para galeria do plano), Ruff aprovado.
+Os casos cobrem miniaturas e papéis, escape de nomes/motivos, ausência de dependências de rede,
+CLI, plano bloqueado, plano desatualizado, saída fora do acervo e criação sem sobrescrita.
+A verificação visual em navegador não foi executada no Work: o Chromium headless não estava
+instalado e seu download falhou. A abertura, busca e expansão deverão ser conferidas pelo
+operador no navegador do Arch. Não há declaração de PASS para esse teste visual.
