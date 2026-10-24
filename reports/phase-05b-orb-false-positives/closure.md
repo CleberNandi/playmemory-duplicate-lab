@@ -1,5 +1,9 @@
 # Phase 05B closure — 2026-10-23
 
+> Update 2026-10-24: [raw-evidence-audit.md](raw-evidence-audit.md) records receipt,
+> hash verification, JSON comparison and inspection of all six diagnostic PNGs.
+> Statements below about unavailable raw artifacts describe the original closure.
+
 **Decision: PASS WITH RESERVATIONS.** The two false confirmations are identified
 and their supplied measurements are preserved. Evidence consolidation is complete.
 This does not certify capture identity or qualify ORB for retention decisions.

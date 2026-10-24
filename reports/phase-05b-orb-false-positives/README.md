@@ -1,5 +1,9 @@
 # Phase 05B — ORB mutual: investigation of false confirmations
 
+> Raw artifacts received and audited on 2026-10-24: see
+> [raw-evidence-audit.md](raw-evidence-audit.md). Their previous unavailability
+> is resolved; source-corpus and independent-reproduction limits remain.
+
 > Consolidated on 2026-10-23. See [closure.md](closure.md) for the final audit,
 > executed validations and remaining reservations. Pending gates below describe
 > the imported investigation record, before this consolidation.
