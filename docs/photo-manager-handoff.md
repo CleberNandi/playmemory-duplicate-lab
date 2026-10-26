@@ -1,9 +1,58 @@
 # Checkpoint de convergência: Duplicate Lab → Photo Manager
 
-Data: 2026-10-24. Entrega limitada a leitura, revisão e plano de duplicatas binárias.
+Histórico iniciado em 2026-10-24; consolidado em 2026-10-26.
 Este documento prepara a integração; não registra implementação no Photo Manager.
 
-## Fonte e estado
+## Estado atual consolidado — 2026-10-26
+
+Este documento mantém abaixo o histórico das entregas. Pendências e números das seções
+anteriores descrevem aquele momento; para o estado atual, prevalece este resumo.
+
+- Entrega visual publicada em `feat/visual-pair-review`, commit `16f61d96ccea2ab191bf7631c0270c36fa48bee3`.
+- Work: 136 testes, Ruff e verificação do diff aprovados. Arch: operador informou
+  136 testes e Ruff aprovados.
+- Quarentena/restauração de exatas homologada nas cópias de estudo: nove candidatos
+  movidos e restaurados, preservado mantido, journal registrado (detalhes abaixo).
+- Revisão de pares: HTML aberto e conteúdo avaliado pelo operador; aceite e rejeição
+  persistidos por CLI, conforme saídas enviadas. Nenhuma movimentação por similaridade.
+- Sem alteração do Photo Manager, merge ou PR nesta entrega.
+
+### Evidências visuais fornecidas pelo operador
+
+| Caso de estudo | Resultado | Avaliação humana registrada |
+| --- | --- | --- |
+| Mesmo quadro em 1920 × 1080 e 3840 × 2160 | SHA-256 distintos; pHash 0; SSIM 0,999310; MAE 0,001091 | `accepted_candidate`: mesmo conteúdo visual/enquadramento em resoluções diferentes |
+| Foto individual versus composição que repete essa foto | SHA-256 distintos; pHash 24; SSIM 0,104538; MAE 0,284643 | `rejected_candidate` para equivalência de redimensionamento/recompressão; conteúdo relacionado |
+
+O segundo caso não é um negativo de conteúdo totalmente independente: é um derivado relacionado,
+com estrutura global diferente. A relação foi descrita pelo operador, não inferida pelo detector.
+Derivação, equivalência visual, igualdade binária e identidade de captura devem permanecer
+conceitos separados. Maior resolução não comprova maior qualidade ou originalidade histórica.
+
+A homologação demonstra o fluxo mínimo de comparação e registro humano em dois pares, não
+acurácia, cobertura de recompressão isolada ou classificação automática de transformações.
+As métricas usam quadro normalizado em cinza a 512 × 512; prévias reduzidas não certificam
+detalhe integral. O Work não leu diretamente os artefatos ou fotografias do Arch.
+Arquivos, hashes individuais, nomes e caminhos privados não são publicados neste checkpoint.
+
+### Próxima fatia no Photo Manager
+
+1. Auditar o estado real do produto e seus contratos antes de incorporar código; nenhuma
+   alteração no outro repositório está autorizada por este checkpoint.
+2. Priorizar grupos binários exatos sobre localizações catalogadas, com todos os caminhos,
+   escolha/motivo e protegidos visíveis, sem fundir Assets ou perder anotações.
+3. Demonstrar primeiro o plano revisável sem mutação; depois integrar quarentena somente com
+   coordenação explícita entre journal, localizações e recuperação do catálogo.
+4. Manter revisão visual como avaliação humana separada, vinculada aos hashes/localizações
+   observados, com invalidação quando o conteúdo mudar. Não consumir seu JSON como plano
+   de execução nem habilitar movimentação por similaridade.
+5. Reaproveitar capacidades como módulo interno do produto único. Não criar serviço separado,
+   nova interface definitiva no Lab, novos algoritmos ou retomar ORB/Fase 05C nesta passagem.
+
+Critério do checkpoint: exatas e revisão humana delimitadas têm evidências suficientes para
+iniciar avaliação de incorporação no produto; integração e merge continuam pendentes.
+
+## Fonte e estado histórico
 
 - Repositório: `CleberNandi/playmemory-duplicate-lab`.
 - Branch de entrega: `feat/exact-duplicate-review-plan`.
