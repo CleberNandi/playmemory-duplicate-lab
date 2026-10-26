@@ -1,7 +1,7 @@
 [project]
 name = "playmemories-duplicate-lab"
 version = "0.2.2"
-description = "Laboratorio local e somente leitura para investigar fotografias duplicadas"
+description = "Laboratorio local de revisão e quarentena explícita de duplicatas"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

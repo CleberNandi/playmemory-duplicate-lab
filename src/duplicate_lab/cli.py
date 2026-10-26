@@ -52,7 +52,8 @@ def _add_scan_options(parser: argparse.ArgumentParser) -> None:
 
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(
-        prog="duplicate-lab", description="Laboratorio somente leitura de duplicatas fotograficas"
+        prog="duplicate-lab",
+        description="Laboratorio de revisão e quarentena explícita de duplicatas"
     )
     root.add_argument("--verbose", action="store_true")
     commands = root.add_subparsers(dest="command", required=True)
@@ -77,6 +78,15 @@ def parser() -> argparse.ArgumentParser:
     gallery = commands.add_parser("exact-gallery", help="Visualizar plano exato em HTML local")
     gallery.add_argument("plan_file", type=Path)
     gallery.add_argument("--output", type=Path, required=True)
+    auth = commands.add_parser("exact-authorize", help="Autorizar plano exato para mover/restaurar")
+    auth.add_argument("plan_file", type=Path)
+    auth.add_argument("--confirm-plan-id", required=True)
+    auth.add_argument("--exclusive-access", action="store_true", required=True)
+    auth.add_argument("--output", type=Path, required=True)
+    for name in ("exact-quarantine", "exact-restore"):
+        operation = commands.add_parser(name, help="Executar/retomar ações autorizadas")
+        operation.add_argument("plan_file", type=Path)
+        operation.add_argument("--authorization", type=Path, required=True)
     inventory = commands.add_parser("inventory", help="Descobrir e validar imagens")
     _add_common(inventory)
     scan_command = commands.add_parser("scan", help="Executar a pipeline e mostrar o resumo")
@@ -153,6 +163,18 @@ def main(argv: list[str] | None = None) -> int:
         format="%(levelname)s %(name)s %(message)s",
     )
     try:
+        if args.command in ("exact-authorize", "exact-quarantine", "exact-restore"):
+            from duplicate_lab.quarantine import authorize, execute, load_execution_artifact
+
+            plan = load_execution_artifact(args.plan_file, "exact-plan")
+            if args.command == "exact-authorize":
+                approval = authorize(plan, args.confirm_plan_id)
+                write_artifact(approval, args.output, Path(plan["scan"]["root"]))
+                print(f"Autorização explícita gravada: {args.output}")
+            else:
+                approval = load_execution_artifact(args.authorization, "exact-authorization")
+                print(json.dumps(execute(plan, approval, restore=args.command == "exact-restore")))
+            return 0
         if args.command == "exact-gallery":
             from duplicate_lab.html_report import write_exact_gallery
 

@@ -76,3 +76,34 @@ Não transportar dependências perceptuais do Lab para o produto sem necessidade
 
 A convergência deve produzir uma fatia utilizável do Photo Manager, com demonstração e critérios
 de aceite, antes de ampliar a sequência de estudos ou construir outro produto no Lab.
+
+## Atualização de 2026-10-26 — quarentena exata isolada
+
+Branch `feat/exact-reversible-quarantine`, baseada em `4a93464`. O módulo interno
+`duplicate_lab.quarantine` acrescenta autorização vinculada ao plano, journal SQLite,
+movimentação Linux sem sobrescrita no mesmo filesystem, retomada e restauração.
+Contrato e homologação: [quarentena reversível](exact-reversible-quarantine.md).
+A evidência nova é sintética no Work; ainda não há homologação operacional no Arch.
+Não houve modificação do Photo Manager, merge, PR ou incorporação de código dupeGuru.
+
+Para incorporar no produto, substituir o reconhecimento manual de dependências por vinculação
+explícita às localizações/identidades do catálogo e um protocolo coordenado de atualização e
+recuperação. O journal de filesystem não é transação atômica com o banco do catálogo.
+Não chamar o executor diretamente enquanto o catálogo observa/escreve os mesmos caminhos.
+A UI/CLI experimental do Lab não determina interface definitiva nem serviço separado.
+
+### Próximo incremento visual delimitado
+
+| Caso | Capacidade existente | Falta / continuidade |
+| --- | --- | --- |
+| Redimensionamento/recompressão | pHash, SSIM, MAE, relatórios e testes de benchmark | Comparação humana de pares com dimensões e indicação de transformação; primeiro incremento |
+| Rotação, recorte, edição | Trilha experimental ORB e evidências de falsos positivos | Revisão humana e evidências por transformação; sem nova Fase 05C nem thresholds automáticos |
+| Sequências semelhantes | Candidatos perceptuais podem aproximar cenas distintas | Identidade de captura não é demonstrada; manter fotos distintas por padrão |
+| Outros formatos/mídias | Scan binário aceita extensões configuradas | Decoder, metadados e comparação visual por formato não estão homologados; vídeo fora do incremento |
+
+Começar somente por pares redimensionados/recomprimidos nos conjuntos de estudo já existentes,
+com comparação lado a lado, aceitação/rejeição humana registrada e sem operações de arquivo.
+Não inferir mesma captura por geometria consistente. Manter separados: igualdade binária,
+similaridade visual, identidade de captura, preferência de preservação e autorização de ação.
+O produto final continua sendo o Photo Manager; esta revisão visual é evidência para seu módulo
+interno, sem criar outra interface definitiva no laboratório.

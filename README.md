@@ -1,3 +1,9 @@
+> Quarentena exata experimental (Linux, mesmo filesystem):
+> [contrato, exemplo sintético e homologação](docs/exact-reversible-quarantine.md).
+> `exact-authorize`, `exact-quarantine` e `exact-restore` executam ações somente com
+> autorização explícita. Os comandos de scan, plano, check e galeria continuam sem movimentar.
+> As descrições anteriores de laboratório somente leitura não incluem esse executor opt-in.
+
 # PlayMemories Duplicate Lab
 
 Protótipo local, determinístico e somente leitura para descobrir duplicatas exatas e investigar

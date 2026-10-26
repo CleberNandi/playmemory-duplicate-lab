@@ -1,3 +1,8 @@
+> Atualização 2026-10-26: este documento registra o incremento dry-run original.
+> A execução agora tem contrato separado em [quarentena reversível](exact-reversible-quarantine.md).
+> O plano continua sem autorizar ações; as afirmações históricas de ausência de executor
+> referem-se à entrega de 2026-10-24.
+
 # Duplicatas binárias: snapshot e plano de revisão v1
 
 ## Decisão e auditoria
