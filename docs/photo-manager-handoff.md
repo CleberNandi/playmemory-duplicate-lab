@@ -107,3 +107,21 @@ Não inferir mesma captura por geometria consistente. Manter separados: igualdad
 similaridade visual, identidade de captura, preferência de preservação e autorização de ação.
 O produto final continua sendo o Photo Manager; esta revisão visual é evidência para seu módulo
 interno, sem criar outra interface definitiva no laboratório.
+
+## Homologação no Arch informada pelo operador — 2026-10-26
+
+No commit `5a0b12e`, o operador reportou 133 testes e Ruff aprovados, mais o ciclo sintético
+com movimentação e restauração verificadas. Em seguida, autorizou uma sessão nova nas cópias
+de estudo: um preservado, nove candidatos, nenhuma dependência externa de catálogo.
+O executor registrou nove ações `moved`; o operador confirmou visualmente um preservado na
+origem e nove candidatos na quarentena. Depois de autorização de restauração, o retorno do
+executor registrou nove ações `restored`, com conteúdo verificado e sem sobrescrita.
+Essas evidências foram fornecidas pelo operador; o Work não inspecionou a workstation ou seu
+journal diretamente. A confirmação visual individual após restauração não foi registrada.
+
+Este resultado substitui a pendência de homologação operacional indicada na atualização anterior.
+Não amplia autorização a originais ou outras sessões. Plano, autorização e journal continuam
+privados com o operador; nova movimentação exige scan/plano/autorização novos.
+
+O incremento seguinte é [revisão explícita de par visual](visual-pair-review.md), com métricas,
+prévias e avaliação humana persistida, sem identidade de captura presumida ou ação por similaridade.

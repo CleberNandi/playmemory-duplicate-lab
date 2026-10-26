@@ -57,6 +57,14 @@ def parser() -> argparse.ArgumentParser:
     )
     root.add_argument("--verbose", action="store_true")
     commands = root.add_subparsers(dest="command", required=True)
+    visual = commands.add_parser("visual-pair", help="Revisão humana de dois JPEGs, sem ações")
+    visual.add_argument("left", type=Path)
+    visual.add_argument("right", type=Path)
+    visual.add_argument("--output-dir", type=Path, required=True)
+    visual.add_argument("--decision", choices=(
+        "pending", "accepted_candidate", "rejected_candidate", "uncertain"
+    ), default="pending")
+    visual.add_argument("--reason", default="")
     exact = commands.add_parser(
         "exact-scan", help="Inventário binário e grupos SHA-256, sem visual"
     )
@@ -163,6 +171,12 @@ def main(argv: list[str] | None = None) -> int:
         format="%(levelname)s %(name)s %(message)s",
     )
     try:
+        if args.command == "visual-pair":
+            from duplicate_lab.visual_review import review_pair
+
+            review_pair(args.left, args.right, args.output_dir, args.decision, args.reason)
+            print(f"Revisão privada: {args.output_dir}; nenhuma ação autorizada")
+            return 0
         if args.command in ("exact-authorize", "exact-quarantine", "exact-restore"):
             from duplicate_lab.quarantine import authorize, execute, load_execution_artifact
 
