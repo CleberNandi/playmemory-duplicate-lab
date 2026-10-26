@@ -174,3 +174,16 @@ privados com o operador; nova movimentação exige scan/plano/autorização novo
 
 O incremento seguinte é [revisão explícita de par visual](visual-pair-review.md), com métricas,
 prévias e avaliação humana persistida, sem identidade de captura presumida ou ação por similaridade.
+
+## Continuidade — fila visual de conjunto (2026-10-26)
+
+Branch `feat/visual-set-review`, baseada no checkpoint `1d42ffe`. Contrato, auditoria de
+capacidades e roteiro Arch: [fila de revisão](visual-set-review.md).
+Descoberta JPEG limitada reutiliza pHash existente, sem busca de rotações ou novos thresholds,
+e separa pares SHA-256 iguais. Galeria privada permite escolher ID; comparação humana existente
+persiste avaliação ligada à fila/par e bloqueia conteúdo/identidade alterados.
+Não gera autorização, preferência, fusão de Assets ou operação no acervo.
+
+Retorno da auditoria do Photo Manager ausente nesta sessão: integrar ao catálogo somente após
+mapear localizações/hashes e invalidação no produto. A CLI/HTML é contrato experimental,
+não segunda interface definitiva. Evidência nova somente sintética no Work; Arch pendente.

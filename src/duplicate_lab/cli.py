@@ -57,6 +57,19 @@ def parser() -> argparse.ArgumentParser:
     )
     root.add_argument("--verbose", action="store_true")
     commands = root.add_subparsers(dest="command", required=True)
+    batch = commands.add_parser("visual-set", help="Descobrir fila visual JPEG limitada")
+    batch.add_argument("directory", type=Path)
+    batch.add_argument("--output-dir", type=Path, required=True)
+    batch.add_argument("--max-files", type=int, default=200)
+    batch.add_argument("--max-candidates", type=int, default=100)
+    selected = commands.add_parser("visual-set-pair", help="Avaliar par por ID da fila")
+    selected.add_argument("queue_file", type=Path)
+    selected.add_argument("pair_id")
+    selected.add_argument("--output-dir", type=Path, required=True)
+    selected.add_argument("--decision", choices=(
+        "pending", "accepted_candidate", "rejected_candidate", "uncertain"
+    ), default="pending")
+    selected.add_argument("--reason", default="")
     visual = commands.add_parser("visual-pair", help="Revisão humana de dois JPEGs, sem ações")
     visual.add_argument("left", type=Path)
     visual.add_argument("right", type=Path)
@@ -171,6 +184,20 @@ def main(argv: list[str] | None = None) -> int:
         format="%(levelname)s %(name)s %(message)s",
     )
     try:
+        if args.command == "visual-set":
+            from duplicate_lab.visual_set import discover_set
+
+            result = discover_set(args.directory, args.output_dir,
+                                  args.max_files, args.max_candidates)
+            print(f"Fila privada: {len(result['candidates'])} candidatos; nenhuma ação autorizada")
+            return 0
+        if args.command == "visual-set-pair":
+            from duplicate_lab.visual_set import review_set_pair
+
+            review_set_pair(load_artifact(args.queue_file, "visual-set-review"),
+                            args.pair_id, args.output_dir, args.decision, args.reason)
+            print(f"Revisão privada: {args.output_dir}; nenhuma ação autorizada")
+            return 0
         if args.command == "visual-pair":
             from duplicate_lab.visual_review import review_pair
 

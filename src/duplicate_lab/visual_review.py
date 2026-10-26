@@ -15,7 +15,8 @@ DECISIONS = ("pending", "accepted_candidate", "rejected_candidate", "uncertain")
 
 
 def review_pair(
-    left: Path, right: Path, output: Path, decision: str = "pending", reason: str = ""
+    left: Path, right: Path, output: Path, decision: str = "pending", reason: str = "",
+    *, provenance: dict | None = None, validate_source=None,
 ) -> dict:
     """Persist a private snapshot and human assessment, without inferring capture identity."""
     if decision not in DECISIONS or (decision != "pending" and not reason.strip()):
@@ -48,6 +49,8 @@ def review_pair(
         "human_review": {"decision": decision, "reason": reason},
         "capture_identity": "not_established", "action_authorized": False,
     }
+    if provenance is not None:
+        result["provenance"] = provenance
     figures = "".join(
         f'<figure><img src="{thumb}" alt="Prévia"><figcaption>'
         f'{html.escape(str(r.path))}<br>{r.width} × {r.height} · {r.size_bytes} bytes'
@@ -73,6 +76,8 @@ def review_pair(
     for r, digest in zip(records, digests, strict=True):
         if sha256_file(r.path, expected_identity=r.identity) != digest:
             raise ValueError("Imagem alterada durante a revisão")
+    if validate_source is not None:
+        validate_source()
     output.mkdir(parents=True, exist_ok=False)
     (output / "review.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     (output / "gallery.html").write_text(document, encoding="utf-8")
