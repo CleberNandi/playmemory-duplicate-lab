@@ -242,3 +242,21 @@ proveniência mantida, fila vazia, tamanho de página independente e argumentos 
 Testes de invalidação e compatibilidade anteriores continuam aprovados.
 Não houve inspeção em navegador no Work ou acesso ao Arch/corpus; homologação desta paginação
 pendente. A integração ao Photo Manager continua independente e não foi modificada.
+
+## Homologação da paginação no Arch — 2026-10-27
+
+Evidências informadas pelo operador no commit a9038f2:
+
+- 159 testes e Ruff aprovados.
+- Conjunto com 61 JPEGs e 52 conteúdos binários distintos.
+- Fila gerada com 156 candidatos; agrupamento binário não reduziu os pares.
+- Navegação entre páginas confirmada pelo operador.
+- Índice conferido: cobertura integral, sem IDs repetidos.
+- Distribuição: seis páginas com 25 pares e última com seis.
+- Comparação de um ID da última página gerada com proveniência da fila,
+  escopo restrito aos representantes, decisão pending e ação não autorizada.
+
+Isso valida descoberta, paginação e acesso à comparação por ID neste
+conjunto. Não demonstra acurácia geral, aceite humano desse último par
+ou revisão individual dos 156 candidatos.
+Artefatos operacionais e fotografias permanecem privados.
