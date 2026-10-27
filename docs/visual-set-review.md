@@ -1,3 +1,6 @@
+> Estado atual: a seção final "Paginação" substitui o limite histórico de 100
+> candidatos: padrão/teto total 1.000; página padrão 25 (máximo 100).
+
 # Fila privada de candidatos JPEG — incremento 2026-10-26
 
 ## Auditoria e escopo
@@ -173,3 +176,69 @@ modo novo; quatro localizações mantidas numa avaliação com escopo explícito
 remoção e symlink em membro não representante bloqueados; mutação durante prévia bloqueada;
 dez conteúdos distintos mantêm 45 candidatos mesmo com pHash igual; roundtrip CLI v2 e
 compatibilidade dos testes v1. Sem acesso ao corpus ou homologação Arch desta extensão.
+
+## Paginação — continuidade de 2026-10-27
+
+Base de implementação `6c2dd3a`, branch nova `feat/visual-queue-pagination`.
+Operador reportou no Arch: 151 testes e Ruff aprovados; com `--collapse-exact`, o conjunto
+completo encontrou **156 revisões e 156 pares de localizações**, excedendo 100 e sem publicar
+fila. Portanto, reunir cópias binárias não reduziu candidatos nesse conjunto. A hipótese de
+multiplicação por cópias não explica esse resultado; não há diagnóstico de acurácia geral.
+Os 151 testes validam a extensão, não sua utilidade quantitativa no conjunto real.
+
+### Contrato atual
+
+- Descoberta mantém pHash <=8, sem busca de rotações, no máximo 200 arquivos, até 19.900
+  comparações de distância. Sem novos algoritmos, alteração de thresholds ou transitividade.
+- `--max-candidates` agora tem padrão **1.000** e teto 1.000. Esse é aumento explícito e
+  limitado do orçamento de materialização da fila, motivado pelo caso de 156 candidatos.
+  Não modifica o teto de arquivos/comparações, nem calcula SSIM/MAE durante a descoberta.
+  Acima desse orçamento, o comando informa o total e aborta antes de publicar; não trunca.
+  Quem deseja manter o bloqueio antigo pode usar `--max-candidates 100`.
+- `--page-size` padrão **25**, intervalo 1..100, limita candidatos por arquivo HTML,
+  independentemente do limite total. Fila completa permanece em `queue.json` v1/v2.
+  ID de par, ordem por pHash/ID e referência ao conteúdo não dependem da página.
+- `gallery.html` é a primeira página; seguintes são `page-0002.html`, etc. Links relativos
+  Anterior/Próxima, primeira/última e páginas vizinhas funcionam localmente, sem JavaScript
+  ou rede. Cada página informa número, total de páginas/candidatos e ID da fila.
+- `gallery-index.json` v1, com checksum e `queue_id`, mapeia páginas para IDs de pares.
+  Não é autorização nem um novo contrato de revisão. Nenhum candidato é descartado ou
+  aparece em duas páginas; conjunto vazio gera uma página sem pares.
+- Avaliação continua via `visual-set-pair queue.json ID`, independentemente da página.
+  Navegar não grava aceite nem progresso. Não há agregação automática das avaliações,
+  fila de pendências dinâmica ou propagação de decisões. Relatórios antigos ficam intactos.
+- Cada HTML inclui suas prévias, mas a galeria completa é agora um diretório: preservar
+  todos os HTMLs, índice e fila ao transferir/arquivar. HTML isolado não contém outras páginas.
+- A geração ainda mantém candidatos/prévias/HTMLs em memória, revalida arquivos antes de
+  publicar e pode deixar pasta parcial em falha de escrita. Não é streaming nem promessa
+  de limite rígido de memória/bytes/tempo. Paginar melhora navegação, não reduz 156 avaliações.
+
+### Homologação Arch proposta
+
+Depois de importar a branch em worktree nova e rodar testes/Ruff, criar saída nova e usar
+as cópias de estudo. Exemplo com placeholders (substituir antes de executar):
+
+```bash
+uv run duplicate-lab visual-set /conjunto-de-estudo \
+  --collapse-exact --page-size 25 --output-dir /revisoes/fila-paginada-nova
+xdg-open /revisoes/fila-paginada-nova/gallery.html
+```
+
+Se entradas e seleção permanecerem iguais, esperar 156 candidatos, sete páginas, 25 pares
+nas seis primeiras e seis na última. Isso é expectativa, não resultado já obtido.
+Conferir links Próxima/Anterior, acesso à última página, listas de localizações e vínculo
+à fila. Escolher ID na última página, gerar comparação pendente em saída nova e conferir
+proveniência. Não assumir aceite do conteúdo ao testar navegação. Não publicar artefatos.
+Verificar, pelo índice, contagem completa e ausência de IDs repetidos. Se o conjunto mudou,
+registrar nova contagem sem forçar a expectativa histórica.
+
+### Validação Work desta fatia
+
+159 testes, Ruff e `git diff --check` aprovados. Novos casos sintéticos: fila com 171 pares
+em sete páginas nos modos v1/v2, cobertura integral e única por ID, todos os links apontando
+para HTMLs gerados, última página parcial, avaliação de par da última página via CLI com
+proveniência mantida, fila vazia, tamanho de página independente e argumentos inválidos.
+1.035 candidatos excedem o teto total de 1.000 e impedem publicação mesmo com páginas de 25.
+Testes de invalidação e compatibilidade anteriores continuam aprovados.
+Não houve inspeção em navegador no Work ou acesso ao Arch/corpus; homologação desta paginação
+pendente. A integração ao Photo Manager continua independente e não foi modificada.

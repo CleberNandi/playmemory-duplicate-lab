@@ -18,12 +18,14 @@ from duplicate_lab.visual_review import review_pair
 
 
 def discover_set(
-    root: Path, output: Path, max_files: int = 200, max_candidates: int = 100,
-    *, collapse_exact: bool = False,
+    root: Path, output: Path, max_files: int = 200, max_candidates: int = 1000,
+    *, collapse_exact: bool = False, page_size: int = 25,
 ) -> dict:
     """Select all nonbinary pairs at existing pHash threshold 8, orientation zero only."""
-    if not 1 <= max_files <= 200 or not 1 <= max_candidates <= 100:
-        raise ValueError("Limites: 1..200 arquivos e 1..100 candidatos")
+    if not 1 <= max_files <= 200 or not 1 <= max_candidates <= 1000:
+        raise ValueError("Limites: 1..200 arquivos e 1..1000 candidatos")
+    if not 1 <= page_size <= 100:
+        raise ValueError("Tamanho de página deve estar entre 1 e 100")
     root = Path(os.path.abspath(root))
     member_path(root.parent, root.name)
     if not root.is_dir():
@@ -122,27 +124,58 @@ def discover_set(
                 locations += f'<ul>{names}</ul></details>'
         cards.append(f'<section><h2>{pair["id"]} · pHash {pair["phash_distance"]}</h2>'
                      f'{figures}{locations}</section>')
-    document = ('<!doctype html><html lang="pt-BR"><meta charset="utf-8">'
-                '<title>Candidatos visuais</title><style>body{font:16px system-ui;'
-                'max-width:1100px;margin:auto}figure{display:inline-block;max-width:45%;'
-                'overflow-wrap:anywhere}img{max-width:100%}</style><h1>Candidatos visuais</h1>'
-                '<p>Fila estática privada. Similaridade não prova mesma captura. '
-                'Nenhuma ação autorizada. Use visual-set-pair com o ID para avaliar. '
-                'Prévia reduzida; confira os arquivos integrais.</p>'
-                f'<p>{len(files)} JPEGs válidos; {len(excluded)} exclusões; '
-                f'{len(candidates)} candidatos. Fila: {payload["id"]}</p>'
-                + f'<p>{location_pairs} pares de localizações; '
-                f'{summary["collapsed_location_pairs"]} repetições binárias reunidas. '
-                'Representante escolhido por ordem de caminho, sem preferência de preservação. '
-                'Avaliação restrita aos representantes; sem propagação automática.</p>'
-                + ''.join(cards) + '</html>')
+    page_count = max(1, (len(candidates) + page_size - 1) // page_size)
+    names = ['gallery.html'] + [f'page-{i:04d}.html' for i in range(2, page_count + 1)]
+    pages = []
+    for index, name in enumerate(names):
+        start = index * page_size
+        batch = candidates[start:start + page_size]
+        pages.append({"file": name, "pair_ids": [p['id'] for p in batch]})
+    documents = []
+    for index, page in enumerate(pages):
+        start = index * page_size
+        navigation = ' · '.join(
+            f'<a href="{name}" aria-label="Página {i + 1}">{i + 1}</a>'
+            if i != index else f'<strong aria-current="page">{i + 1}</strong>'
+            for i, name in enumerate(names)
+            if i in {0, page_count - 1} or abs(i - index) <= 2
+        )
+        previous = f'<a href="{names[index - 1]}">Anterior</a> · ' if index else ''
+        following = (f' · <a href="{names[index + 1]}">Próxima</a>'
+                     if index + 1 < page_count else '')
+        nav = f'<nav>{previous}{navigation}{following}</nav>'
+        document = ('<!doctype html><html lang="pt-BR"><meta charset="utf-8">'
+                    '<title>Candidatos visuais</title><style>body{font:16px system-ui;'
+                    'max-width:1100px;margin:auto}figure{display:inline-block;max-width:45%;'
+                    'overflow-wrap:anywhere}img{max-width:100%}nav{margin:1rem 0;'
+                    'overflow-wrap:anywhere}</style><h1>Candidatos visuais</h1>'
+                    '<p>Fila estática privada. Similaridade não prova mesma captura. '
+                    'Nenhuma ação autorizada. Use visual-set-pair com o ID para avaliar. '
+                    'Prévia reduzida; confira os arquivos integrais.</p>'
+                    f'<p>{len(files)} JPEGs válidos; {len(excluded)} exclusões; '
+                    f'{len(candidates)} candidatos no total. Fila: {payload["id"]}</p>'
+                    f'<p>Página {index + 1} de {page_count}; '
+                    f'{len(page["pair_ids"])} candidatos nesta página. '
+                    'A navegação não registra avaliação.</p>'
+                    f'<p>{location_pairs} pares de localizações; '
+                    f'{summary["collapsed_location_pairs"]} repetições binárias reunidas. '
+                    'Representante escolhido por ordem de caminho, sem preferência de preservação. '
+                    'Avaliação restrita aos representantes; sem propagação automática.</p>'
+                    + nav + ''.join(cards[start:start + page_size]) + nav + '</html>')
+        documents.append(document)
+    gallery_index = seal({"kind": "visual-gallery-index", "version": 1,
+                     "queue_id": payload['id'], "page_size": page_size, "pages": pages})
     for item in files:
         path = member_path(root, item['path'])
         if checked_hash(path, item['identity']) != item['sha256']:
             raise ValueError("Conteúdo alterado")
     output.mkdir(parents=True, exist_ok=False)
     (output / 'queue.json').write_text(json.dumps(payload, indent=2), encoding='utf-8')
-    (output / 'gallery.html').write_text(document, encoding='utf-8')
+    (output / 'gallery-index.json').write_text(
+        json.dumps(gallery_index, indent=2), encoding='utf-8'
+    )
+    for page, document in zip(pages, documents, strict=True):
+        (output / page['file']).write_text(document, encoding='utf-8')
     return payload
 
 

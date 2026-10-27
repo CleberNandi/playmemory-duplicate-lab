@@ -197,3 +197,15 @@ representantes exibidos. Leitor novo aceita v1/v2; leitor antigo rejeita v2.
 Não agrupa conteúdos perceptualmente similares ou presume relações transitivas. Limites e
 threshold permanecem. Diagnóstico do conjunto completo e homologação Arch ainda pendentes;
 nenhuma modificação no Photo Manager. Ver contrato em `visual-set-review.md`.
+
+### Fila paginada — extensão do contrato de apresentação
+
+Na continuidade após `6c2dd3a`, operador reportou 151 testes/Ruff aprovados no Arch e
+156 candidatos/156 pares de localizações: agrupar cópias SHA-256 não reduziu o conjunto.
+Branch `feat/visual-queue-pagination` separa orçamento total (padrão/teto 1.000 candidatos)
+de tamanho da página (padrão 25, máximo 100), mantendo 200 arquivos e seleção existente.
+Fila integral v1/v2 e IDs preservados; índice vincula páginas e pares, sem descartar pares,
+propagar avaliações ou autorizar operações. Galeria local passa a ocupar vários HTMLs.
+159 testes sintéticos/Ruff aprovados no Work; paginação no Arch pendente. O aumento limitado
+de orçamento é explícito, não melhoria de acurácia ou redução de avaliações.
+Não altera o Photo Manager nem exige sua interface adotar a galeria do Lab.

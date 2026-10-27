@@ -63,7 +63,10 @@ def parser() -> argparse.ArgumentParser:
     batch.add_argument("--collapse-exact", action="store_true",
                        help="Reunir localizações SHA-256 iguais; não agrupa similaridade")
     batch.add_argument("--max-files", type=int, default=200)
-    batch.add_argument("--max-candidates", type=int, default=100)
+    batch.add_argument("--max-candidates", type=int, default=1000,
+                       help="Limite total de candidatos (1..1000), sem truncamento")
+    batch.add_argument("--page-size", type=int, default=25,
+                       help="Candidatos por página HTML (1..100)")
     selected = commands.add_parser("visual-set-pair", help="Avaliar par por ID da fila")
     selected.add_argument("queue_file", type=Path)
     selected.add_argument("pair_id")
@@ -191,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
 
             result = discover_set(args.directory, args.output_dir,
                                   args.max_files, args.max_candidates,
-                                  collapse_exact=args.collapse_exact)
+                                  collapse_exact=args.collapse_exact, page_size=args.page_size)
             print(f"Fila privada: {len(result['candidates'])} candidatos; nenhuma ação autorizada")
             print(json.dumps(result["summary"], ensure_ascii=False))
             return 0

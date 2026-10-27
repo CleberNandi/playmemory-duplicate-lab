@@ -188,7 +188,7 @@ def test_binary_repetition_exceeds_old_limit_but_content_mode_fits(tmp_path):
         shutil.copyfile(root / 'a.jpg', root / f'a-{index}.jpg')
         shutil.copyfile(root / 'b.jpg', root / f'b-{index}.jpg')
     with pytest.raises(ValueError, match='121 revisões, 121 pares'):
-        discover_set(root, tmp_path / 'old')
+        discover_set(root, tmp_path / 'old', max_candidates=100)
     queue = discover_set(root, tmp_path / 'new', collapse_exact=True)
     assert queue['summary']['candidate_location_pairs'] == 121
     assert queue['summary']['collapsed_location_pairs'] == 120
@@ -216,3 +216,78 @@ def test_group_member_changed_during_pair_preview(tmp_path, monkeypatch):
     with pytest.raises((OSError, ValueError)):
         review_set_pair(queue, pair['id'], tmp_path / 'review')
     assert not (tmp_path / 'review').exists()
+
+
+@pytest.mark.parametrize('collapse_exact', [False, True])
+def test_paginated_queue_complete_once_and_last_page_review(tmp_path, collapse_exact):
+    import re
+
+    root = tmp_path / 'photos'
+    root.mkdir()
+    for index in range(19):
+        Image.new('RGB', (100 + index, 60), 'navy').save(root / f'{index:02d}.jpg')
+    output = tmp_path / 'queue'
+    queue = discover_set(root, output, collapse_exact=collapse_exact, page_size=25)
+    assert len(queue['candidates']) == 171
+    gallery_index = json.loads((output / 'gallery-index.json').read_text())
+    assert gallery_index['queue_id'] == queue['id']
+    assert len(gallery_index['pages']) == 7
+    seen = []
+    for page in gallery_index['pages']:
+        document = (output / page['file']).read_text()
+        ids = re.findall(r'<h2>(pair-\d+-\d+) ·', document)
+        assert ids == page['pair_ids']
+        assert len(ids) <= 25
+        seen.extend(ids)
+        assert '171 candidatos no total' in document
+        assert 'A navegação não registra avaliação' in document
+        for target in re.findall(r'href="([^"]+)"', document):
+            assert (output / target).is_file()
+        assert '<script' not in document
+        assert 'https://' not in document
+    assert seen == [p['id'] for p in queue['candidates']]
+    assert len(set(seen)) == 171
+    assert len(gallery_index['pages'][-1]['pair_ids']) == 21
+    assert main(['visual-set-pair', str(output / 'queue.json'), seen[-1],
+                 '--output-dir', str(tmp_path / 'review'), '--decision', 'uncertain',
+                 '--reason', 'Last page synthetic pair']) == 0
+    review = json.loads((tmp_path / 'review/review.json').read_text())
+    assert review['provenance']['pair_id'] == seen[-1]
+    assert review['provenance']['queue_id'] == queue['id']
+    assert review['human_review']['decision'] == 'uncertain'
+    assert review['action_authorized'] is False
+
+
+def test_cli_page_size_and_small_or_empty_queue(tmp_path):
+    root = dataset(tmp_path)
+    output = tmp_path / 'queue'
+    assert main(['visual-set', str(root), '--output-dir', str(output), '--page-size', '1']) == 0
+    index = json.loads((output / 'gallery-index.json').read_text())
+    assert len(index['pages']) == 2
+    assert index['pages'][0]['file'] == 'gallery.html'
+    assert index['pages'][1]['file'] == 'page-0002.html'
+    empty = tmp_path / 'empty'
+    empty.mkdir()
+    discover_set(empty, tmp_path / 'empty-queue')
+    index = json.loads((tmp_path / 'empty-queue/gallery-index.json').read_text())
+    assert index['pages'] == [{'file': 'gallery.html', 'pair_ids': []}]
+
+
+@pytest.mark.parametrize('options', [
+    {'page_size': 0}, {'page_size': 101}, {'max_candidates': 0}, {'max_candidates': 1001},
+])
+def test_pagination_limits_reject_before_output(tmp_path, options):
+    root = dataset(tmp_path)
+    with pytest.raises(ValueError):
+        discover_set(root, tmp_path / 'queue', **options)
+    assert not (tmp_path / 'queue').exists()
+
+
+def test_total_limit_not_a_page_truncation(tmp_path):
+    root = tmp_path / 'photos'
+    root.mkdir()
+    for index in range(46):
+        Image.new('RGB', (100 + index, 60), 'navy').save(root / f'{index:02d}.jpg')
+    with pytest.raises(ValueError, match='1035 revisões, 1035 pares'):
+        discover_set(root, tmp_path / 'queue', page_size=25)
+    assert not (tmp_path / 'queue').exists()
