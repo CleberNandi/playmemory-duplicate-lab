@@ -118,3 +118,101 @@ def test_patterned_resize_and_unrelated_frame(tmp_path, patterned_image, noisy_i
     assert all('unrelated.jpg' not in pair for pair in names)
     with pytest.raises(ValueError, match='fora'):
         review_set_pair(queue, queue['candidates'][0]['id'], root / 'nested/review')
+
+
+def test_content_queue_preserves_locations_and_review_scope(tmp_path):
+    root = dataset(tmp_path)
+    shutil.copyfile(root / 'b.jpg', root / 'b-copy.jpg')
+    output = tmp_path / 'queue'
+    assert main(['visual-set', str(root), '--output-dir', str(output),
+                 '--collapse-exact', '--max-candidates', '1']) == 0
+    queue = json.loads((output / 'queue.json').read_text())
+    assert queue['version'] == 2
+    assert len(queue['files']) == 4
+    assert queue['summary'] == {
+        'valid_files': 4, 'unique_binary_contents': 2, 'candidate_location_pairs': 4,
+        'review_candidates': 1, 'collapsed_location_pairs': 3,
+    }
+    pair = queue['candidates'][0]
+    assert len(pair['left_members']) == len(pair['right_members']) == 2
+    assert set(pair['left_members'] + pair['right_members']) == set(range(4))
+    gallery = (output / 'gallery.html').read_text()
+    assert all(item['path'] in gallery for item in queue['files'])
+    assert main(['visual-set-pair', str(output / 'queue.json'), pair['id'],
+                 '--output-dir', str(tmp_path / 'review'), '--decision', 'accepted_candidate',
+                 '--reason', 'Synthetic evidence']) == 0
+    review = json.loads((tmp_path / 'review/review.json').read_text())
+    assert review['provenance']['assessment_scope'] == 'displayed_representatives_only'
+    assert len(review['provenance']['observed_locations']) == 4
+    assert len(review['files']) == 2
+    assert review['action_authorized'] is False
+
+
+@pytest.mark.parametrize('change', ['content', 'removed', 'symlink'])
+def test_content_queue_revalidates_nonrepresentative(tmp_path, change):
+    root = dataset(tmp_path)
+    queue = discover_set(root, tmp_path / 'queue', collapse_exact=True)
+    pair = queue['candidates'][0]
+    index = next(i for key in ('left_members', 'right_members') for i in pair[key]
+                 if i not in (pair['left'], pair['right']))
+    path = root / queue['files'][index]['path']
+    if change == 'content':
+        path.write_bytes(b'changed')
+    else:
+        path.unlink()
+        if change == 'symlink':
+            path.symlink_to(root / 'a.jpg')
+    with pytest.raises((OSError, ValueError)):
+        review_set_pair(queue, pair['id'], tmp_path / 'review')
+    assert not (tmp_path / 'review').exists()
+
+
+def test_distinct_contents_not_collapsed_even_with_same_phash(tmp_path):
+    root = tmp_path / 'photos'
+    root.mkdir()
+    for index in range(10):
+        Image.new('RGB', (100 + index, 60), 'navy').save(root / f'{index}.jpg')
+    queue = discover_set(root, tmp_path / 'queue', collapse_exact=True)
+    assert queue['summary']['unique_binary_contents'] == 10
+    assert queue['summary']['candidate_location_pairs'] == 45
+    assert len(queue['candidates']) == 45
+    with pytest.raises(ValueError, match='45 revisões, 45 pares'):
+        discover_set(root, tmp_path / 'limited', max_candidates=10, collapse_exact=True)
+    assert not (tmp_path / 'limited').exists()
+
+
+def test_binary_repetition_exceeds_old_limit_but_content_mode_fits(tmp_path):
+    root = dataset(tmp_path)
+    (root / 'copy.jpg').unlink()
+    for index in range(10):
+        shutil.copyfile(root / 'a.jpg', root / f'a-{index}.jpg')
+        shutil.copyfile(root / 'b.jpg', root / f'b-{index}.jpg')
+    with pytest.raises(ValueError, match='121 revisões, 121 pares'):
+        discover_set(root, tmp_path / 'old')
+    queue = discover_set(root, tmp_path / 'new', collapse_exact=True)
+    assert queue['summary']['candidate_location_pairs'] == 121
+    assert queue['summary']['collapsed_location_pairs'] == 120
+    assert len(queue['candidates']) == 1
+    assert len(queue['files']) == 22
+
+
+def test_group_member_changed_during_pair_preview(tmp_path, monkeypatch):
+    import duplicate_lab.visual_review as module
+
+    root = dataset(tmp_path)
+    queue = discover_set(root, tmp_path / 'queue', collapse_exact=True)
+    pair = queue['candidates'][0]
+    index = next(i for key in ('left_members', 'right_members') for i in pair[key]
+                 if i not in (pair['left'], pair['right']))
+    path = root / queue['files'][index]['path']
+    thumbnail = module._thumbnail
+
+    def mutate(p):
+        result = thumbnail(p)
+        path.write_bytes(b'changed')
+        return result
+
+    monkeypatch.setattr(module, '_thumbnail', mutate)
+    with pytest.raises((OSError, ValueError)):
+        review_set_pair(queue, pair['id'], tmp_path / 'review')
+    assert not (tmp_path / 'review').exists()

@@ -187,3 +187,13 @@ Não gera autorização, preferência, fusão de Assets ou operação no acervo.
 Retorno da auditoria do Photo Manager ausente nesta sessão: integrar ao catálogo somente após
 mapear localizações/hashes e invalidação no produto. A CLI/HTML é contrato experimental,
 não segunda interface definitiva. Evidência nova somente sintética no Work; Arch pendente.
+
+### Extensão opcional: candidatos por conteúdo binário
+
+Branch `feat/visual-content-candidates`, derivada de `31aa8cc`: modo opt-in reúne somente
+localizações com SHA-256 igual para evitar repetir uma comparação visual por cada cópia.
+Fila v2 preserva todos os membros, revalida ambos os lados e mantém avaliação restrita aos
+representantes exibidos. Leitor novo aceita v1/v2; leitor antigo rejeita v2.
+Não agrupa conteúdos perceptualmente similares ou presume relações transitivas. Limites e
+threshold permanecem. Diagnóstico do conjunto completo e homologação Arch ainda pendentes;
+nenhuma modificação no Photo Manager. Ver contrato em `visual-set-review.md`.

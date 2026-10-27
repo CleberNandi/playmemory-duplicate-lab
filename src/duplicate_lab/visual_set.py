@@ -6,6 +6,7 @@ import html
 import itertools
 import json
 import os
+from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -16,7 +17,10 @@ from duplicate_lab.inventory import inspect_file
 from duplicate_lab.visual_review import review_pair
 
 
-def discover_set(root: Path, output: Path, max_files: int = 200, max_candidates: int = 100) -> dict:
+def discover_set(
+    root: Path, output: Path, max_files: int = 200, max_candidates: int = 100,
+    *, collapse_exact: bool = False,
+) -> dict:
     """Select all nonbinary pairs at existing pHash threshold 8, orientation zero only."""
     if not 1 <= max_files <= 200 or not 1 <= max_candidates <= 100:
         raise ValueError("Limites: 1..200 arquivos e 1..100 candidatos")
@@ -61,25 +65,47 @@ def discover_set(root: Path, output: Path, max_files: int = 200, max_candidates:
         hashes.append(oriented_phashes(path)[0])
         files.append({"path": relative, "identity": identity, "sha256": digest,
                       "width": record.width, "height": record.height})
+    by_digest = defaultdict(list)
+    for index, item in enumerate(files):
+        by_digest[item['sha256']].append(index)
+    content_groups = list(by_digest.values())
+    groups = content_groups if collapse_exact else [[i] for i in range(len(files))]
     candidates = []
-    for left, right in itertools.combinations(range(len(files)), 2):
+    location_pairs = 0
+    for left_group, right_group in itertools.combinations(groups, 2):
+        left, right = left_group[0], right_group[0]
         distance = int(hashes[left] - hashes[right])
         if files[left]["sha256"] == files[right]["sha256"] or distance > 8:
             continue
-        candidates.append({"id": f"pair-{left:03d}-{right:03d}", "left": left,
-                           "right": right, "phash_distance": distance})
-        if len(candidates) > max_candidates:
-            raise ValueError("Limite de candidatos excedido; selecione conjunto menor")
+        location_pairs += len(left_group) * len(right_group)
+        pair = {"id": f"pair-{left:03d}-{right:03d}", "left": left,
+                "right": right, "phash_distance": distance}
+        if collapse_exact:
+            pair.update(left_members=left_group, right_members=right_group)
+        candidates.append(pair)
+    summary = {"valid_files": len(files), "unique_binary_contents": len(content_groups),
+               "candidate_location_pairs": location_pairs,
+               "review_candidates": len(candidates),
+               "collapsed_location_pairs": location_pairs - len(candidates)}
+    if len(candidates) > max_candidates:
+        raise ValueError(
+            f"Limite de candidatos excedido: {len(candidates)} revisões, "
+            f"{location_pairs} pares de localizações; máximo {max_candidates}. "
+            "Selecione conjunto menor; nada publicado"
+        )
     candidates.sort(key=lambda p: (p["phash_distance"], p["id"]))
     previews = {i: _thumbnail(root / f["path"]) for i, f in enumerate(files)}
     if not all(previews.values()):
         raise ValueError("Falha ao gerar prévias")
-    payload = seal({"kind": "visual-set-review", "version": 1,
+    payload = seal({"kind": "visual-set-review", "version": 2 if collapse_exact else 1,
                     "created_at": datetime.now(UTC).isoformat(), "root": str(root),
                     "selection": {"phash_threshold": 8, "rotation_search": False,
                                   "max_files": max_files, "max_candidates": max_candidates},
                     "files": files, "excluded": excluded, "candidates": candidates,
+                    "summary": summary,
                     "action_authorized": False, "capture_identity": "not_established"})
+    if collapse_exact:
+        payload = seal({**payload, "assessment_scope": "displayed_representatives_only"})
     cards = []
     for pair in candidates:
         figures = ''.join(
@@ -88,8 +114,14 @@ def discover_set(root: Path, output: Path, max_files: int = 200, max_candidates:
             f'{files[i]["height"]}</figcaption></figure>'
             for i in (pair['left'], pair['right'])
         )
+        locations = ''
+        if collapse_exact:
+            for label, key in (("Esquerda", "left_members"), ("Direita", "right_members")):
+                names = ''.join(f'<li>{html.escape(files[i]["path"])}</li>' for i in pair[key])
+                locations += f'<details><summary>{label}: {len(pair[key])} localizações</summary>'
+                locations += f'<ul>{names}</ul></details>'
         cards.append(f'<section><h2>{pair["id"]} · pHash {pair["phash_distance"]}</h2>'
-                     f'{figures}</section>')
+                     f'{figures}{locations}</section>')
     document = ('<!doctype html><html lang="pt-BR"><meta charset="utf-8">'
                 '<title>Candidatos visuais</title><style>body{font:16px system-ui;'
                 'max-width:1100px;margin:auto}figure{display:inline-block;max-width:45%;'
@@ -99,6 +131,10 @@ def discover_set(root: Path, output: Path, max_files: int = 200, max_candidates:
                 'Prévia reduzida; confira os arquivos integrais.</p>'
                 f'<p>{len(files)} JPEGs válidos; {len(excluded)} exclusões; '
                 f'{len(candidates)} candidatos. Fila: {payload["id"]}</p>'
+                + f'<p>{location_pairs} pares de localizações; '
+                f'{summary["collapsed_location_pairs"]} repetições binárias reunidas. '
+                'Representante escolhido por ordem de caminho, sem preferência de preservação. '
+                'Avaliação restrita aos representantes; sem propagação automática.</p>'
                 + ''.join(cards) + '</html>')
     for item in files:
         path = member_path(root, item['path'])
@@ -112,7 +148,7 @@ def discover_set(root: Path, output: Path, max_files: int = 200, max_candidates:
 
 def review_set_pair(queue: dict, pair_id: str, output: Path,
                     decision: str = 'pending', reason: str = '') -> dict:
-    if (queue.get('kind') != 'visual-set-review' or queue.get('version') != 1
+    if (queue.get('kind') != 'visual-set-review' or queue.get('version') not in (1, 2)
             or seal(queue)['id'] != queue.get('id')):
         raise ValueError('Fila inválida')
     pair = next((p for p in queue['candidates'] if p['id'] == pair_id), None)
@@ -127,11 +163,29 @@ def review_set_pair(queue: dict, pair_id: str, output: Path,
     paths = [member_path(root, item['path']) for item in members]
 
     def validate():
-        for path, item in zip(paths, members, strict=True):
+        for path, item in zip(validation_paths, members, strict=True):
             if checked_hash(path, item['identity']) != item['sha256']:
                 raise ValueError('Conteúdo alterado; gere nova fila')
 
+    provenance = {'queue_id': queue['id'], 'pair_id': pair_id}
+    if queue['version'] == 2:
+        indices = pair['left_members'] + pair['right_members']
+        members = [queue['files'][i] for i in indices]
+        validation_paths = [member_path(root, item['path']) for item in members]
+        provenance.update(assessment_scope='displayed_representatives_only',
+                          observed_locations=[item['path'] for item in members])
+    else:
+        validation_paths = paths
     validate()
     return review_pair(*paths, output, decision, reason,
-                       provenance={'queue_id': queue['id'], 'pair_id': pair_id},
+                       provenance=provenance,
                        validate_source=validate)
+
+
+def load_queue(path: Path) -> dict:
+    """Load locally produced v1/v2 queues; checksum is not authentication."""
+    queue = json.loads(path.read_text(encoding='utf-8'))
+    if (not isinstance(queue, dict) or queue.get('kind') != 'visual-set-review'
+            or queue.get('version') not in (1, 2) or seal(queue)['id'] != queue.get('id')):
+        raise ValueError('Fila inválida')
+    return queue

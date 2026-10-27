@@ -111,3 +111,65 @@ thresholds automaticamente.
 
 Evidências fornecidas pelo operador; o Work não inspecionou diretamente
 os artefatos do Arch. Não demonstram acurácia geral do detector.
+
+## Continuidade: candidatos por conteúdo binário (opt-in)
+
+Branch `feat/visual-content-candidates`, base publicada `31aa8cc`.
+A enumeração anterior repetia comparações entre conteúdos quando havia cópias exatas em
+várias localizações. Por exemplo, 11 cópias de A e 11 de B geram 121 pares de caminhos,
+mas somente uma comparação entre dois conteúdos binários distintos. Isso explica uma fonte
+possível de multiplicação; não estabelece a causa nem a contagem do conjunto real do operador.
+
+O modo opcional `--collapse-exact` reúne apenas SHA-256 iguais antes da seleção perceptual.
+Cada candidato contém `left_members`/`right_members` com todos os índices em `files`, sem
+perder localizações. Representantes são os primeiros caminhos na ordenação lexical, sem
+preferência de qualidade/preservação. A galeria exibe as listas completas em blocos expansíveis.
+Não agrupa por pHash, similaridade transitiva, captura ou derivação. Dez conteúdos distintos
+continuam com até 45 pares; não se substitui esse grafo por nove avaliações presumidas.
+
+O modo novo produz `visual-set-review` **v2**. O leitor atual aceita v1 e v2; o leitor antigo
+rejeita v2, evitando interpretar membros agrupados como pares simples. Fila antiga e suas
+avaliações permanecem intactas. O modo sem a opção mantém v1 e comportamento por caminhos.
+Não há migração automática, propagação de aceite ou importação de avaliações históricas.
+
+A avaliação v2 ainda compara somente os dois representantes. Sua proveniência registra
+`assessment_scope=displayed_representatives_only` e todas as localizações observadas.
+Todos os membros dos dois lados são revalidados por identidade e SHA-256 antes e ao final
+da comparação, inclusive os não exibidos. Alteração/remoção/link bloqueia sem substituir
+automaticamente representante. Não autoriza ações, nem altera Assets ou preferências.
+
+Os limites permanecem 200 arquivos/100 candidatos. O limite de 100 é aplicado após reunir
+cópias exatas quando a opção está ativa. O código conta todos os pares dentro do limite de
+arquivos (até 19.900); se exceder candidatos, informa totais e não publica saída.
+O resumo JSON/terminal distingue arquivos, conteúdos únicos, pares de localizações,
+candidatos revisáveis e repetições reunidas. Em v1 as repetições reunidas são zero.
+Custo de inventário, SHA-256, pHash e prévias por arquivo permanece; não é índice para acervos
+grandes nem melhora de acurácia. Limiar 8, EXIF e ausência de busca de rotação não mudaram.
+
+### Homologação proposta no Arch
+
+Usar branch nova em worktree isolada e saída privada nova. Preservar revisões anteriores.
+Não há `set -e` nem limpeza automática de arquivos do operador neste roteiro.
+
+```bash
+uv sync --locked
+uv run pytest
+uv run ruff check .
+uv run duplicate-lab visual-set /conjunto-de-estudo \
+  --collapse-exact --output-dir /revisoes/fila-por-conteudo-nova
+```
+
+Substituir os dois caminhos antes de executar. Enviar somente o resumo numérico, sem JSON
+operacional, caminhos privados ou fotografias. Se exceder 100, registrar a mensagem: não
+ampliar limites. Se publicar, abrir galeria, conferir listas de localizações, escolher um ID
+e usar `visual-set-pair` em saída nova. A avaliação permanece restrita aos representantes.
+A comparação com a fila anterior é diagnóstica; não herdar aceite por conteúdo automaticamente.
+
+### Validação Work
+
+151 testes e Ruff aprovados; `git diff --check` aprovado. Evidências sintéticas novas:
+22 localizações/2 conteúdos produzem 121 pares no modo antigo (bloqueado) e um candidato no
+modo novo; quatro localizações mantidas numa avaliação com escopo explícito; alteração,
+remoção e symlink em membro não representante bloqueados; mutação durante prévia bloqueada;
+dez conteúdos distintos mantêm 45 candidatos mesmo com pHash igual; roundtrip CLI v2 e
+compatibilidade dos testes v1. Sem acesso ao corpus ou homologação Arch desta extensão.

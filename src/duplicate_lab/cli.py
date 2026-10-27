@@ -60,6 +60,8 @@ def parser() -> argparse.ArgumentParser:
     batch = commands.add_parser("visual-set", help="Descobrir fila visual JPEG limitada")
     batch.add_argument("directory", type=Path)
     batch.add_argument("--output-dir", type=Path, required=True)
+    batch.add_argument("--collapse-exact", action="store_true",
+                       help="Reunir localizações SHA-256 iguais; não agrupa similaridade")
     batch.add_argument("--max-files", type=int, default=200)
     batch.add_argument("--max-candidates", type=int, default=100)
     selected = commands.add_parser("visual-set-pair", help="Avaliar par por ID da fila")
@@ -188,13 +190,15 @@ def main(argv: list[str] | None = None) -> int:
             from duplicate_lab.visual_set import discover_set
 
             result = discover_set(args.directory, args.output_dir,
-                                  args.max_files, args.max_candidates)
+                                  args.max_files, args.max_candidates,
+                                  collapse_exact=args.collapse_exact)
             print(f"Fila privada: {len(result['candidates'])} candidatos; nenhuma ação autorizada")
+            print(json.dumps(result["summary"], ensure_ascii=False))
             return 0
         if args.command == "visual-set-pair":
-            from duplicate_lab.visual_set import review_set_pair
+            from duplicate_lab.visual_set import load_queue, review_set_pair
 
-            review_set_pair(load_artifact(args.queue_file, "visual-set-review"),
+            review_set_pair(load_queue(args.queue_file),
                             args.pair_id, args.output_dir, args.decision, args.reason)
             print(f"Revisão privada: {args.output_dir}; nenhuma ação autorizada")
             return 0
