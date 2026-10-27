@@ -92,3 +92,22 @@ Casos novos: roundtrip CLI, conteúdo sintético redimensionado versus ruído, e
 proveniência/motivo, ausência de mutação, metadados/remoção/symlink, limites sem publicação,
 exclusões/resultado vazio, checksum/ID, mutação durante renderização e saída fora do conjunto.
 Não houve inspeção visual em navegador no Work nem teste com fotografias do operador.
+
+## Homologação Arch informada pelo operador — 2026-10-27
+
+Commit testado: 87ab7d4. Operador reportou 144 testes e Ruff aprovados.
+
+- Subconjunto de dez JPEGs: 45 candidatos descobertos.
+- Galeria aberta, com prévias, IDs, nomes e dimensões visíveis.
+- Par em duas resoluções comparado e aceito pelo operador; avaliação
+  persistida com vínculo à fila e ao par, sem autorização de ação.
+- Teste sintético posterior: alteração de membro bloqueou a avaliação,
+  sem publicar revisão inválida.
+
+O conjunto completo excedeu o limite de 100 candidatos e foi bloqueado.
+Sua revisão integral não está homologada. A quantidade de pares permanece
+uma limitação de usabilidade a diagnosticar, sem elevar limites ou alterar
+thresholds automaticamente.
+
+Evidências fornecidas pelo operador; o Work não inspecionou diretamente
+os artefatos do Arch. Não demonstram acurácia geral do detector.
